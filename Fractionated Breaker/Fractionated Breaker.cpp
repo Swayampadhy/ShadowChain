@@ -29,12 +29,12 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
 	BOOL bFlag = FALSE;
 	CHAR FileHeader[MAX_PATH] = { 0 };
 
-	for(DWORD dwFractionCount = 0;;dwFractionCount++){
+	for (DWORD dwFractionCount = 0;; dwFractionCount++) {
 		_snwprintf_s(OutputPath, MAX_PATH * sizeof(WCHAR), L"%wsFraction%ld", OutputDirectory, dwFractionCount);
 		if (IsPathValidW(OutputPath)) {
 			continue;
 		}
-		else{
+		else {
 			_snprintf_s(FileHeader, MAX_PATH, "<%ld>", dwFractionCount);
 
 			if (strlen(FileHeader) < 32) {
@@ -59,6 +59,7 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
 		if (!WriteFile(hHandle, DataBlock, dwWriteSize, &dwOut, NULL)) {
 			goto EXIT_ROUTINE;
 		}
+	}
 
 	EXIT_ROUTINE:
 
@@ -84,7 +85,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		goto EXIT_ROUTINE;
 	}
-	
+
+	do {
+		BYTE Buffer[1024] = { 0 };
+		DWORD dwRead = ERROR_SUCCESS;
+
+		if (!ReadFile(hHandle, Buffer, 1024, &dwRead, NULL)) {
+			goto EXIT_ROUTINE;
+		}
+
+		if (dwRead < 1024) {
+			EndOfFile = TRUE;
+		}
+
+		if (!CreateFraction(Buffer, dwRead, szArgList[2])) {
+			goto EXIT_ROUTINE;
+		}
+
+		ZeroMemory(Buffer, sizeof(Buffer));
+	} while (!EndOfFile);
+
+	bFlag = TRUE;
+
 EXIT_ROUTINE:
 
 	if (!bFlag)

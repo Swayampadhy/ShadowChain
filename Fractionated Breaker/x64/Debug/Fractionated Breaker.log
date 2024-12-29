@@ -1,0 +1,2 @@
+﻿  Fractionated Breaker.cpp
+C:\Users\MALDEV01\Desktop\My malwares-source\ShadowChain\Fractionated Breaker\Fractionated Breaker.cpp(43,6): error C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
