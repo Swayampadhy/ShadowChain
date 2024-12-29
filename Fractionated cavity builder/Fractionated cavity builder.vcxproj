@@ -24,6 +24,7 @@
     <ProjectGuid>{15290c5d-2e50-4ba5-8c37-a84d9d0f2a5b}</ProjectGuid>
     <RootNamespace>Fractionatedcavitybuilder</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Fractionated_cavity_builder</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

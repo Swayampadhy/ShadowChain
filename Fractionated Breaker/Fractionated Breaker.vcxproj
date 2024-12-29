@@ -24,6 +24,7 @@
     <ProjectGuid>{a70439d2-319a-49a7-83a3-12f9752b0bd8}</ProjectGuid>
     <RootNamespace>FractionatedBreaker</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Fractionated_Breaker</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

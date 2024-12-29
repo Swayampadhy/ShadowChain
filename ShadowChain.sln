@@ -5,11 +5,11 @@ VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShadowChain", "ShadowChain\ShadowChain.vcxproj", "{ED51A0B3-3A58-48D6-9888-1CFE76399946}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Fractionated Breaker", "Fractionated Breaker\Fractionated Breaker.vcxproj", "{A70439D2-319A-49A7-83A3-12F9752B0BD8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Fractionated_Breaker", "Fractionated Breaker\Fractionated Breaker.vcxproj", "{A70439D2-319A-49A7-83A3-12F9752B0BD8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Fractionated cavity builder", "Fractionated cavity builder\Fractionated cavity builder.vcxproj", "{15290C5D-2E50-4BA5-8C37-A84D9D0F2A5B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Fractionated_cavity_builder", "Fractionated cavity builder\Fractionated cavity builder.vcxproj", "{15290C5D-2E50-4BA5-8C37-A84D9D0F2A5B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Fractionated cavity Infector", "Fractionated cavity Infector\Fractionated cavity Infector.vcxproj", "{5F5B3F27-72CF-4971-A9B6-066112A84F67}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Fractionated_cavity_Infector", "Fractionated cavity Infector\Fractionated cavity Infector.vcxproj", "{5F5B3F27-72CF-4971-A9B6-066112A84F67}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
