@@ -24,7 +24,7 @@ BOOL IsPathValidW(PWCHAR FilePath) {
 SIZE_T StringLengthA(LPCSTR String) { 
     LPCSTR String2; 
     for (String2 = String; *String2; ++String2);
-    printf("%lld", String2 - String);
+    printf("%lld\n", String2 - String);
     return (String2 - String); 
 }
 
@@ -133,15 +133,17 @@ int WINAPI WinMain(
     } while (!EndOfFile);
 
     bFlag = TRUE;
-	printf("Operation Completed Successfully\n");
+    printf("Operation Completed Successfully\n");
 
 EXIT_ROUTINE:
 
-    if (!bFlag)
+    if (!bFlag) {
         dwError = GetLastError();
         printf("Error: %ld\n", dwError);
+    }
     LocalFree(szArgList);
-    if (hHandle)
+    if (hHandle) {
         CloseHandle(hHandle);
+    }
     return dwError;
 }
