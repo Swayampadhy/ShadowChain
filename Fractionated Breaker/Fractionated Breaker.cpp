@@ -40,7 +40,7 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
 			if (strlen(FileHeader) < 32) {
 				DWORD dwOffset = (DWORD)(32 - strlen(FileHeader));
 				for (DWORD dwX = 0; dwX < dwOffset; dwX++) {
-					strcat(FileHeader, " ");
+					strcat_s(FileHeader, sizeof(FileHeader), " ");
 				}
 				break;
 			}
