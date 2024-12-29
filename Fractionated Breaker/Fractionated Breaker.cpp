@@ -65,7 +65,7 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
 
 		if (hHandle)
 			CloseHandle(hHandle);
-
+		printf("Error");
 		return bFlag;
 
 }
@@ -86,6 +86,7 @@ int WINAPI WinMain(
 	LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);	
 	
 	hHandle = CreateFile(szArgList[1], GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	printf("File read: %ws\n", szArgList[1]);
 	if (hHandle == INVALID_HANDLE_VALUE)
 	{
 		goto EXIT_ROUTINE;
@@ -114,8 +115,10 @@ int WINAPI WinMain(
 
 EXIT_ROUTINE:
 
+	
 	if (!bFlag)
 		dwError = GetLastError();
+	printf("Error: %ld\n", dwError);
 	LocalFree(szArgList);
 	if (hHandle)
 		CloseHandle(hHandle);
