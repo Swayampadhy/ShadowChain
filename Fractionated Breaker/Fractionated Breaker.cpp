@@ -3,7 +3,7 @@
 
 BOOL IsPathValidW(PWCHAR FilePath) {
     HANDLE hFile = INVALID_HANDLE_VALUE;
-    hFile = CreateFile(FilePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    hFile = CreateFileW(FilePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
         wprintf(L"Invalid file path: %ws\n", FilePath);
         return FALSE;
@@ -84,7 +84,8 @@ int WINAPI WinMain(
     _In_ int nShowCmd
 )
 {
-    printf("Program started\n");
+    wprintf(L"Program started\n");
+
 
     HANDLE hHandle = INVALID_HANDLE_VALUE;
     DWORD dwError = ERROR_SUCCESS;
@@ -105,11 +106,13 @@ int WINAPI WinMain(
     WCHAR wszTestExe[MAX_PATH];
     MultiByteToWideChar(CP_ACP, 0, ".\\test.exe", -1, wszTestExe, MAX_PATH);
 
+    wprintf(L"Attempting to open file: %ws\n", wszTestExe);
+
     // Convert ".\opfolder\" to wide string
     WCHAR wszOpFolder[MAX_PATH];
     MultiByteToWideChar(CP_ACP, 0, ".\\opfolder\\", -1, wszOpFolder, MAX_PATH);
 
-    hHandle = CreateFile(wszTestExe, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    hHandle = CreateFileW(wszTestExe, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hHandle == INVALID_HANDLE_VALUE) {
  //       wprintf(L"Failed to open file: %ws\n", szArgList[1]);
         goto EXIT_ROUTINE;
@@ -154,3 +157,5 @@ EXIT_ROUTINE:
     }
     return dwError;
 }
+
+
