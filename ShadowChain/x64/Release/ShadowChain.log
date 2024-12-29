@@ -1,3 +1,6 @@
 ﻿  ShadowChain.cpp
-MSVCRT.lib(exe_main.obj) : error LNK2001: unresolved external symbol main
-C:\Users\MALDEV01\Desktop\My malwares-source\ShadowChain\x64\Release\ShadowChain.exe : fatal error LNK1120: 1 unresolved externals
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 4 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  ShadowChain.vcxproj -> C:\Users\MALDEV01\Desktop\My malwares-source\ShadowChain\x64\Release\ShadowChain.exe

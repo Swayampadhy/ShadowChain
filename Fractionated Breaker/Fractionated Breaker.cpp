@@ -1,13 +1,6 @@
 #include <Windows.h>
 #include <stdio.h>
 
-typedef struct __FRACTION_DATA {
-    LONGLONG BufferSize;
-    DWORD NumberOfFractions;
-} FRACTION_DATA, * PFRACTION_DATA;
-
-PBYTE g_BinaryBuffer = NULL;
-
 BOOL IsPathValidW(PWCHAR FilePath) {
     HANDLE hFile = INVALID_HANDLE_VALUE;
     hFile = CreateFile(FilePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -15,9 +8,9 @@ BOOL IsPathValidW(PWCHAR FilePath) {
         wprintf(L"Invalid file path: %ws\n", FilePath);
         return FALSE;
     }
-
-    if (hFile)
+    if (hFile) {
         CloseHandle(hFile);
+    }
     return TRUE;
 }
 
@@ -88,26 +81,37 @@ int WINAPI WinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPSTR lpCmdLine,
-    _In_ int nCmdShow
+    _In_ int nShowCmd
 )
 {
+    printf("Program started\n");
+
     HANDLE hHandle = INVALID_HANDLE_VALUE;
     DWORD dwError = ERROR_SUCCESS;
     BOOL bFlag = FALSE;
     BOOL EndOfFile = FALSE;
 
-    INT Arguments;
-    LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);    
+ //   INT Arguments;
+ //   LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);    
 
-    if (Arguments < 3) {
-        printf("Usage: <program> <input file> <output directory>\n");
-        return ERROR_INVALID_PARAMETER;
-    }
+ //   if (Arguments < 3) {
+ //       printf("Usage: <program> <input file> <output directory>\n");
+ //       return ERROR_INVALID_PARAMETER;
+ //   }
 
-    wprintf(L"Reading file: %ws\n", szArgList[1]);
-    hHandle = CreateFile(szArgList[1], GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+ //   wprintf(L"Reading file: %ws\n", szArgList[1]);
+ //   hHandle = CreateFile(szArgList[1], GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    // Convert ".\test.exe" to wide string
+    WCHAR wszTestExe[MAX_PATH];
+    MultiByteToWideChar(CP_ACP, 0, ".\\test.exe", -1, wszTestExe, MAX_PATH);
+
+    // Convert ".\opfolder\" to wide string
+    WCHAR wszOpFolder[MAX_PATH];
+    MultiByteToWideChar(CP_ACP, 0, ".\\opfolder\\", -1, wszOpFolder, MAX_PATH);
+
+    hHandle = CreateFile(wszTestExe, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hHandle == INVALID_HANDLE_VALUE) {
-        wprintf(L"Failed to open file: %ws\n", szArgList[1]);
+ //       wprintf(L"Failed to open file: %ws\n", szArgList[1]);
         goto EXIT_ROUTINE;
     }
 
@@ -124,12 +128,14 @@ int WINAPI WinMain(
             EndOfFile = TRUE;
         }
 
-        if (!CreateFraction(Buffer, dwRead, szArgList[2])) {
+//        if (!CreateFraction(Buffer, dwRead, szArgList[2])) {
+        if (!CreateFraction(Buffer, dwRead, wszOpFolder)) {
             printf("Failed to create fraction\n");
             goto EXIT_ROUTINE;
         }
 
         ZeroMemory(Buffer, sizeof(Buffer));
+    
     } while (!EndOfFile);
 
     bFlag = TRUE;
@@ -141,7 +147,8 @@ EXIT_ROUTINE:
         dwError = GetLastError();
         printf("Error: %ld\n", dwError);
     }
-    LocalFree(szArgList);
+//    LocalFree(szArgList);
+    
     if (hHandle) {
         CloseHandle(hHandle);
     }
