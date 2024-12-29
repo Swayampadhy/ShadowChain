@@ -14,6 +14,7 @@ BOOL IsPathValidW(PWCHAR FilePath) {
     return TRUE;
 }
 
+
 SIZE_T StringLengthA(LPCSTR String) { 
     LPCSTR String2; 
     for (String2 = String; *String2; ++String2);
@@ -23,17 +24,29 @@ SIZE_T StringLengthA(LPCSTR String) {
 
 BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) {
     HANDLE hHandle = INVALID_HANDLE_VALUE;
-    WCHAR OutputPath[MAX_PATH * sizeof(WCHAR)] = { 0 };
+    WCHAR OutputPath[MAX_PATH] = { 0 };
     DWORD dwOut = ERROR_SUCCESS;
     BOOL bFlag = FALSE;
     CHAR FileHeader[MAX_PATH] = { 0 };
 
+    // Check if output directory exists
+    if (GetFileAttributesW(OutputDirectory) == INVALID_FILE_ATTRIBUTES) {
+        wprintf(L"Output directory does not exist: %ls\n", OutputDirectory);
+        return FALSE;
+    }
+
     for (DWORD dwFractionCount = 0;; dwFractionCount++) {
-        _snwprintf_s(OutputPath, MAX_PATH * sizeof(WCHAR), L"%wsFraction%ld", OutputDirectory, dwFractionCount);
+        int result = _snwprintf_s(OutputPath, MAX_PATH, L"%lsFraction%ld", OutputDirectory, dwFractionCount);
+        if (result < 0) {
+            wprintf(L"Failed to construct output path\n");
+            return FALSE;
+        }
+
+        wprintf(L"Generated output path: %ls\n", OutputPath);
+
         if (IsPathValidW(OutputPath)) {
             continue;
-        }
-        else {
+        } else {
             _snprintf_s(FileHeader, MAX_PATH, "<%ld>", dwFractionCount);
 
             if (strlen(FileHeader) < 32) {
@@ -47,7 +60,8 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
 
         hHandle = CreateFileW(OutputPath, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hHandle == INVALID_HANDLE_VALUE) {
-            wprintf(L"Failed to create file: %ls\n", OutputPath);
+            DWORD error = GetLastError();
+            wprintf(L"Failed to create file: %ls, Error: %ld\n", OutputPath, error);
             goto EXIT_ROUTINE;
         }
 
@@ -55,7 +69,6 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
             wprintf(L"Failed to write file header to: %ls\n", OutputPath);
             goto EXIT_ROUTINE;
         }
-        dwOut = ERROR_SUCCESS;
 
         if (!WriteFile(hHandle, DataBlock, dwWriteSize, &dwOut, NULL)) {
             wprintf(L"Failed to write data block to: %ls\n", OutputPath);
@@ -72,7 +85,7 @@ EXIT_ROUTINE:
     if (hHandle)
         CloseHandle(hHandle);
     if (!bFlag) {
-        printf("Error in CreateFraction\n");
+        wprintf(L"Error in CreateFraction\n");
     }
     return bFlag;
 }
