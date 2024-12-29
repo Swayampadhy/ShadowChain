@@ -5,7 +5,7 @@ BOOL IsPathValidW(PWCHAR FilePath) {
     HANDLE hFile = INVALID_HANDLE_VALUE;
     hFile = CreateFileW(FilePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
-        wprintf(L"Invalid file path: %ws\n", FilePath);
+        wprintf(L"Invalid file path: %ls\n", FilePath);
         return FALSE;
     }
     if (hFile) {
@@ -47,22 +47,22 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
 
         hHandle = CreateFileW(OutputPath, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hHandle == INVALID_HANDLE_VALUE) {
-            wprintf(L"Failed to create file: %ws\n", OutputPath);
+            wprintf(L"Failed to create file: %ls\n", OutputPath);
             goto EXIT_ROUTINE;
         }
 
         if (!WriteFile(hHandle, FileHeader, 32, &dwOut, NULL)) {
-            wprintf(L"Failed to write file header to: %ws\n", OutputPath);
+            wprintf(L"Failed to write file header to: %ls\n", OutputPath);
             goto EXIT_ROUTINE;
         }
         dwOut = ERROR_SUCCESS;
 
         if (!WriteFile(hHandle, DataBlock, dwWriteSize, &dwOut, NULL)) {
-            wprintf(L"Failed to write data block to: %ws\n", OutputPath);
+            wprintf(L"Failed to write data block to: %ls\n", OutputPath);
             goto EXIT_ROUTINE;
         }
 
-        wprintf(L"Successfully created fraction file: %ws\n", OutputPath);
+        wprintf(L"Successfully created fraction file: %ls\n", OutputPath);
         bFlag = TRUE;
         break;
     }
@@ -86,35 +86,34 @@ int WINAPI WinMain(
 {
     wprintf(L"Program started\n");
 
-
     HANDLE hHandle = INVALID_HANDLE_VALUE;
     DWORD dwError = ERROR_SUCCESS;
     BOOL bFlag = FALSE;
     BOOL EndOfFile = FALSE;
 
- //   INT Arguments;
- //   LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);    
+   INT Arguments;
+   LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);    
 
- //   if (Arguments < 3) {
- //       printf("Usage: <program> <input file> <output directory>\n");
- //       return ERROR_INVALID_PARAMETER;
- //   }
+   if (Arguments < 3) {
+       printf("Usage: <program> <input file> <output directory>\n");
+       return ERROR_INVALID_PARAMETER;
+    }
 
- //   wprintf(L"Reading file: %ws\n", szArgList[1]);
- //   hHandle = CreateFile(szArgList[1], GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    wprintf(L"Reading file\n");
+    hHandle = CreateFileW(szArgList[1], GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     // Convert ".\test.exe" to wide string
-    WCHAR wszTestExe[MAX_PATH];
-    MultiByteToWideChar(CP_ACP, 0, ".\\test.exe", -1, wszTestExe, MAX_PATH);
+//    WCHAR wszTestExe[MAX_PATH];
+//    MultiByteToWideChar(CP_ACP, 0, ".\\test.exe", -1, wszTestExe, MAX_PATH);
 
-    wprintf(L"Attempting to open file: %ws\n", wszTestExe);
+    wprintf(L"Attempting to open file\n");
 
     // Convert ".\opfolder\" to wide string
-    WCHAR wszOpFolder[MAX_PATH];
-    MultiByteToWideChar(CP_ACP, 0, ".\\opfolder\\", -1, wszOpFolder, MAX_PATH);
+ //   WCHAR wszOpFolder[MAX_PATH];
+ //   MultiByteToWideChar(CP_ACP, 0, ".\\opfolder\\", -1, wszOpFolder, MAX_PATH);
 
-    hHandle = CreateFileW(wszTestExe, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+ //   hHandle = CreateFileW(wszTestExe, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hHandle == INVALID_HANDLE_VALUE) {
- //       wprintf(L"Failed to open file: %ws\n", szArgList[1]);
+        wprintf(L"Failed to open file: %ls\n", szArgList[1]);
         goto EXIT_ROUTINE;
     }
 
@@ -131,8 +130,8 @@ int WINAPI WinMain(
             EndOfFile = TRUE;
         }
 
-//        if (!CreateFraction(Buffer, dwRead, szArgList[2])) {
-        if (!CreateFraction(Buffer, dwRead, wszOpFolder)) {
+       if (!CreateFraction(Buffer, dwRead, szArgList[2])) {
+//        if (!CreateFraction(Buffer, dwRead, wszOpFolder)) {
             printf("Failed to create fraction\n");
             goto EXIT_ROUTINE;
         }
@@ -150,7 +149,7 @@ EXIT_ROUTINE:
         dwError = GetLastError();
         printf("Error: %ld\n", dwError);
     }
-//    LocalFree(szArgList);
+    LocalFree(szArgList);
     
     if (hHandle) {
         CloseHandle(hHandle);
