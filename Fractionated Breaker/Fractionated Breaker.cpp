@@ -1,7 +1,19 @@
-#include <iostream>
+#include <Windows.h>
+#include <stdio.h>
 
-int main()
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    std::cout << "Hello World!\n";
-}
+	HANDLE hHandle = INVALID_HANDLE_VALUE;
+	DWORD dwError = ERROR_SUCCESS;
+	BOOL bFlag = FALSE;
+	BOOL EndOfFile = FALSE;
 
+	INT Arguments;
+	LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);	
+	if(!bFlag)
+		dwError = GetLastError();
+	LocalFree(szArgList);
+	if (hHandle)
+		CloseHandle(hHandle);
+	return dwError;
+}
