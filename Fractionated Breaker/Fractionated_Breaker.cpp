@@ -1,6 +1,6 @@
 #include <Windows.h>
 #include <stdio.h>
-
+// Function to check if path is valid
 BOOL IsPathValidW(PWCHAR FilePath) {
     HANDLE hFile = INVALID_HANDLE_VALUE;
     hFile = CreateFileW(FilePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -14,7 +14,7 @@ BOOL IsPathValidW(PWCHAR FilePath) {
     return TRUE;
 }
 
-
+// Function to get the length of a string
 SIZE_T StringLengthA(LPCSTR String) { 
     LPCSTR String2; 
     for (String2 = String; *String2; ++String2);
@@ -47,7 +47,7 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
         FILE_ATTRIBUTE_NORMAL,
         NULL
     );
-
+	// Check if file handle is valid
     if (hHandle == INVALID_HANDLE_VALUE) {
         wprintf(L"Failed to create file: %ls\n", szFractionPath);
         return FALSE;
@@ -59,7 +59,7 @@ BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) 
         CloseHandle(hHandle);
         return FALSE;
     }
-
+	// Close file handle
     CloseHandle(hHandle);
     return TRUE;
 }
@@ -78,7 +78,7 @@ int WINAPI WinMain(
     DWORD dwError = ERROR_SUCCESS;
     BOOL bFlag = FALSE;
     BOOL EndOfFile = FALSE;
-
+	// Get command line arguments
    INT Arguments;
    LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);    
 
@@ -86,20 +86,12 @@ int WINAPI WinMain(
        printf("Usage: <program> <input file> <output directory>\n");
        return ERROR_INVALID_PARAMETER;
     }
-
+   // Create file handle to target program
     wprintf(L"Reading file\n");
     hHandle = CreateFileW(szArgList[1], GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    // Convert ".\test.exe" to wide string
-//    WCHAR wszTestExe[MAX_PATH];
-//    MultiByteToWideChar(CP_ACP, 0, ".\\test.exe", -1, wszTestExe, MAX_PATH);
 
     wprintf(L"Attempting to open file\n");
-
-    // Convert ".\opfolder\" to wide string
- //   WCHAR wszOpFolder[MAX_PATH];
- //   MultiByteToWideChar(CP_ACP, 0, ".\\opfolder\\", -1, wszOpFolder, MAX_PATH);
-
- //   hHandle = CreateFileW(wszTestExe, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	// Check if file handle is valid
     if (hHandle == INVALID_HANDLE_VALUE) {
         wprintf(L"Failed to open file: %ls\n", szArgList[1]);
         goto EXIT_ROUTINE;
@@ -108,7 +100,7 @@ int WINAPI WinMain(
     do {
         BYTE Buffer[1024] = { 0 };
         DWORD dwRead = ERROR_SUCCESS;
-
+		// Read file
         if (!ReadFile(hHandle, Buffer, 1024, &dwRead, NULL)) {
             printf("Failed to read file\n");
             goto EXIT_ROUTINE;
@@ -117,9 +109,8 @@ int WINAPI WinMain(
         if (dwRead < 1024) {
             EndOfFile = TRUE;
         }
-
+		// Create fractions of file
        if (!CreateFraction(Buffer, dwRead, szArgList[2])) {
-//        if (!CreateFraction(Buffer, dwRead, wszOpFolder)) {
             printf("Failed to create fraction\n");
             goto EXIT_ROUTINE;
         }
@@ -127,18 +118,18 @@ int WINAPI WinMain(
         ZeroMemory(Buffer, sizeof(Buffer));
     
     } while (!EndOfFile);
-
+	// Set binary flag to true
     bFlag = TRUE;
     printf("Operation Completed Successfully\n");
 
 EXIT_ROUTINE:
-
+	// Free memory
     if (!bFlag) {
         dwError = GetLastError();
         printf("Error: %ld\n", dwError);
     }
     LocalFree(szArgList);
-    
+	// Close file handle
     if (hHandle) {
         CloseHandle(hHandle);
     }
