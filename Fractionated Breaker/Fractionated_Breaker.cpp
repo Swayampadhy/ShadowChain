@@ -18,7 +18,7 @@ BOOL IsPathValidW(PWCHAR FilePath) {
 SIZE_T StringLengthA(LPCSTR String) { 
     LPCSTR String2; 
     for (String2 = String; *String2; ++String2);
-    printf("%lld\n", String2 - String);
+    wprintf(L"%lld\n", String2 - String);
     return (String2 - String); 
 }
 
@@ -83,7 +83,7 @@ int WINAPI WinMain(
    LPWSTR* szArgList = CommandLineToArgvW(GetCommandLineW(), &Arguments);    
 
    if (Arguments < 3) {
-       printf("Usage: <program> <input file> <output directory>\n");
+       wprintf(L"Usage: <program> <input file> <output directory>\n");
        return ERROR_INVALID_PARAMETER;
     }
    // Create file handle to target program
@@ -102,7 +102,7 @@ int WINAPI WinMain(
         DWORD dwRead = ERROR_SUCCESS;
 		// Read file
         if (!ReadFile(hHandle, Buffer, 1024, &dwRead, NULL)) {
-            printf("Failed to read file\n");
+            wprintf(L"Failed to read file\n");
             goto EXIT_ROUTINE;
         }
 
@@ -111,7 +111,7 @@ int WINAPI WinMain(
         }
 		// Create fractions of file
        if (!CreateFraction(Buffer, dwRead, szArgList[2])) {
-            printf("Failed to create fraction\n");
+            wprintf(L"Failed to create fraction\n");
             goto EXIT_ROUTINE;
         }
 
@@ -120,13 +120,13 @@ int WINAPI WinMain(
     } while (!EndOfFile);
 	// Set binary flag to true
     bFlag = TRUE;
-    printf("Operation Completed Successfully\n");
+    wprintf(L"Operation Completed Successfully\n");
 
 EXIT_ROUTINE:
 	// Free memory
     if (!bFlag) {
         dwError = GetLastError();
-        printf("Error: %ld\n", dwError);
+        wprintf(L"Error: %ld\n", dwError);
     }
     LocalFree(szArgList);
 	// Close file handle
