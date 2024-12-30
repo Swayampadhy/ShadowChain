@@ -24,71 +24,46 @@ SIZE_T StringLengthA(LPCSTR String) {
 
 BOOL CreateFraction(PBYTE DataBlock, DWORD dwWriteSize, PWCHAR OutputDirectory) {
     HANDLE hHandle = INVALID_HANDLE_VALUE;
-    WCHAR OutputPath[MAX_PATH] = { 0 };
-    DWORD dwOut = ERROR_SUCCESS;
-    BOOL bFlag = FALSE;
-    CHAR FileHeader[MAX_PATH] = { 0 };
-
-    // Check if output directory exists
-    if (GetFileAttributesW(OutputDirectory) == INVALID_FILE_ATTRIBUTES) {
-        wprintf(L"Output directory does not exist: %ls\n", OutputDirectory);
+    WCHAR szFractionPath[MAX_PATH] = { 0 };
+    static DWORD dwFractionCounter = 0;
+    DWORD dwBytesWritten = 0;
+    
+    // Create directory if it doesn't exist
+    if (!CreateDirectoryW(OutputDirectory, NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
+        wprintf(L"Failed to create directory: %ls\n", OutputDirectory);
         return FALSE;
     }
 
-    for (DWORD dwFractionCount = 0;; dwFractionCount++) {
-        int result = _snwprintf_s(OutputPath, MAX_PATH, L"%lsFraction%ld", OutputDirectory, dwFractionCount);
-        if (result < 0) {
-            wprintf(L"Failed to construct output path\n");
-            return FALSE;
-        }
+    // Construct fraction path
+    swprintf_s(szFractionPath, MAX_PATH, L"%ls\\Fraction%d", OutputDirectory, dwFractionCounter++);
 
-        wprintf(L"Generated output path: %ls\n", OutputPath);
+    // Create file
+    hHandle = CreateFileW(
+        szFractionPath,
+        GENERIC_WRITE,
+        0,
+        NULL,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
 
-        if (IsPathValidW(OutputPath)) {
-            continue;
-        } else {
-            _snprintf_s(FileHeader, MAX_PATH, "<%ld>", dwFractionCount);
-
-            if (strlen(FileHeader) < 32) {
-                DWORD dwOffset = (DWORD)(32 - strlen(FileHeader));
-                for (DWORD dwX = 0; dwX < dwOffset; dwX++) {
-                    strcat_s(FileHeader, sizeof(FileHeader), " ");
-                }
-                break;
-            }
-        }
-
-        hHandle = CreateFileW(OutputPath, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (hHandle == INVALID_HANDLE_VALUE) {
-            DWORD error = GetLastError();
-            wprintf(L"Failed to create file: %ls, Error: %ld\n", OutputPath, error);
-            goto EXIT_ROUTINE;
-        }
-
-        if (!WriteFile(hHandle, FileHeader, 32, &dwOut, NULL)) {
-            wprintf(L"Failed to write file header to: %ls\n", OutputPath);
-            goto EXIT_ROUTINE;
-        }
-
-        if (!WriteFile(hHandle, DataBlock, dwWriteSize, &dwOut, NULL)) {
-            wprintf(L"Failed to write data block to: %ls\n", OutputPath);
-            goto EXIT_ROUTINE;
-        }
-
-        wprintf(L"Successfully created fraction file: %ls\n", OutputPath);
-        bFlag = TRUE;
-        break;
+    if (hHandle == INVALID_HANDLE_VALUE) {
+        wprintf(L"Failed to create file: %ls\n", szFractionPath);
+        return FALSE;
     }
 
-EXIT_ROUTINE:
-
-    if (hHandle)
+    // Write data
+    if (!WriteFile(hHandle, DataBlock, dwWriteSize, &dwBytesWritten, NULL)) {
+        wprintf(L"Failed to write to file: %ls\n", szFractionPath);
         CloseHandle(hHandle);
-    if (!bFlag) {
-        wprintf(L"Error in CreateFraction\n");
+        return FALSE;
     }
-    return bFlag;
+
+    CloseHandle(hHandle);
+    return TRUE;
 }
+
 
 int WINAPI WinMain(
     _In_ HINSTANCE hInstance,

@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Fractionated Breaker.cpp">
+    <ClCompile Include="Fractionated_Breaker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
