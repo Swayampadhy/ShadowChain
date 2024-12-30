@@ -24,6 +24,7 @@
     <ProjectGuid>{e9f11d2a-6625-42f9-8031-ceb870b6fbb9}</ProjectGuid>
     <RootNamespace>payload</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>payload_dll</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

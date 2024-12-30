@@ -4,7 +4,7 @@
 int main(int argc, char* argv[]) {
 	
 	if (argc < 2) {
-		printf("[!] Missing Argument; Dll payload to run\n");
+		printf("[!] Missing Argument; Payload File to run\n");
 		return -1;
 	}
 
@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	printf("[+] Dll Loaded Successfully\n");
+	printf("[+] Payload Loaded Successfully\n");
 
 	printf("[#] Press Any Key To Exit\n");
 	getchar();
