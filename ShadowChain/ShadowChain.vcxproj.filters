@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ShadowChain.cpp">
+    <ClCompile Include="ShadowChain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

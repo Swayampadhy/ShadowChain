@@ -1,6 +1,7 @@
 ﻿  Fractionated cavity Infector.cpp
   Generating code
-  Previous IPDB not found, fall back to full compilation.
+  10 of 11 functions (90.9%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
-  All 11 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
-  Fractionated cavity Infector.vcxproj -> C:\Users\MALDEV01\Desktop\My malwares-source\ShadowChain\x64\Release\Fractionated_cavity_Infector.exe
+  Fractionated cavity Infector.vcxproj -> C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\x64\Release\Fractionated_cavity_Infector.exe
