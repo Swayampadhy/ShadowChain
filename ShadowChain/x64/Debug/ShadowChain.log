@@ -1,8 +1,31 @@
 ﻿  ShadowChain.c
-C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(47,19): warning C4047: '==': 'DWORD' differs in levels of indirection from 'void *'
-C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(104,47): warning C4047: 'function': 'SIZE_T' differs in levels of indirection from 'void *'
-C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(104,47): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 3
-C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(104,78): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
-C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(104,78): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 6
-C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(60,10): warning C4047: 'initializing': 'SIZE_T' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(9,17): warning C4047: '=': 'ULONG_PTR' differs in levels of indirection from 'LPVOID'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(15,31): warning C4047: 'function': 'REGSAM' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(15,31): warning C4024: 'RegDeleteKeyExA': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(15,37): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(15,37): warning C4024: 'RegDeleteKeyExA': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(16,31): warning C4047: 'function': 'REGSAM' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(16,31): warning C4024: 'RegDeleteKeyExW': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(16,37): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(16,37): warning C4024: 'RegDeleteKeyExW': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(17,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(17,23): warning C4024: 'RegEnumKeyExA': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(18,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(18,23): warning C4024: 'RegEnumKeyExW': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(19,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(19,23): warning C4024: 'RegEnumValueW': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(20,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(20,23): warning C4024: 'RegEnumValueA': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(21,34): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(21,34): warning C4024: 'RegGetValueA': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(22,34): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(22,34): warning C4024: 'RegGetValueW': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(27,40): warning C4022: 'HeapFree': pointer mismatch for actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(7,12): warning C4047: 'initializing': 'ULONG_PTR' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(74,19): warning C4047: '==': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(131,47): warning C4047: 'function': 'SIZE_T' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(131,47): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(131,78): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(131,78): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 6
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(87,10): warning C4047: 'initializing': 'SIZE_T' differs in levels of indirection from 'void *'
   ShadowChain.vcxproj -> C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\x64\Debug\ShadowChain.exe
