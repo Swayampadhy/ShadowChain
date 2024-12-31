@@ -85,7 +85,7 @@ BOOL InjectDllToRemoteProcess(IN HANDLE hProcess, IN LPWSTR DllName) {
 		goto _EndOfFunction;
 	}
 
-	printf("[i] Successfully Written %d Bytes\n", lpNumberOfBytesWritten);
+	printf("[i] Successfully Written %lld Bytes\n", lpNumberOfBytesWritten);
 	printf("[i] Dll Name Written To The Remote Process\n");
 
 	printf("[i] Executing Payload ...\n");
@@ -122,10 +122,12 @@ int main(int argc, char* argv[]) {
 
 	// Convert command line arguments to wide strings
 	wchar_t szDllPath[MAX_PATH];
-	mbstowcs(szDllPath, argv[1], MAX_PATH);
+	size_t convertedChars = 0;
+	mbstowcs_s(&convertedChars, szDllPath, MAX_PATH, argv[1], _TRUNCATE);
 
 	wchar_t szProcessName[MAX_PATH];
-	mbstowcs(szProcessName, argv[2], MAX_PATH);
+	mbstowcs_s(&convertedChars, szProcessName, MAX_PATH, argv[2], _TRUNCATE);
+
 
 	DWORD dwProcessID;
 	HANDLE hProcess;

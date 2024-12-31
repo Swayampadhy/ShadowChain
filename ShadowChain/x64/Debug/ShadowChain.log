@@ -1,2 +1,8 @@
 ﻿  ShadowChain.c
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(47,19): warning C4047: '==': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(95,47): warning C4047: 'function': 'SIZE_T' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(95,47): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(95,78): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(95,78): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 6
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(60,10): warning C4047: 'initializing': 'SIZE_T' differs in levels of indirection from 'void *'
   ShadowChain.vcxproj -> C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\x64\Debug\ShadowChain.exe
