@@ -60,13 +60,22 @@ BOOL InjectDllToRemoteProcess(IN HANDLE hProcess, IN LPWSTR DllName) {
 	SIZE_T		lpNumberOfBytesWritten = NULL;
 	HANDLE		hThread = NULL;
 
-	//Load LoadLibraryW WinAPI Function by opening a handle to kernel32.dll
-	pLoadLibraryW = GetProcAddress(GetModuleHandle(L"kernel32.dll"), "LoadLibraryW");
-	if (pLoadLibraryW == NULL) {
-		printf("[!] GetProcAddress Failed With Error Code: %d\n", GetLastError());
-		bSTATE = FALSE;
-		goto _EndOfFunction;
-	}
+    // Load LoadLibraryW WinAPI Function by opening a handle to kernel32.dll
+	//Opening a handle to kernel32.dll
+    HMODULE hKernel32 = GetModuleHandle(L"kernel32.dll");
+    if (hKernel32 == NULL) {
+        printf("[!] GetModuleHandle Failed With Error Code: %d\n", GetLastError());
+        bSTATE = FALSE;
+        goto _EndOfFunction;
+    }
+
+	// Get the address of LoadLibraryW and loading it
+    pLoadLibraryW = GetProcAddress(hKernel32, "LoadLibraryW");
+    if (pLoadLibraryW == NULL) {
+        printf("[!] GetProcAddress Failed With Error Code: %d\n", GetLastError());
+        bSTATE = FALSE;
+        goto _EndOfFunction;
+    }
 
 	//Allocate Memory in the remote process to store the Dll Name
 	pAddress = VirtualAllocEx(hProcess, NULL, dwSizeToWrite, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
