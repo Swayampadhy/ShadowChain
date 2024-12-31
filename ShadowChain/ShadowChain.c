@@ -153,9 +153,5 @@ int main(int argc, char* argv[]) {
 	// Close the handle to the process
 	CloseHandle(hProcess);
 
-	//End
-	printf("[#] Press Any Key To Exit\n");
-	getchar();
-
 	return 0;
 }
