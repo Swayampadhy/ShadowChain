@@ -3,6 +3,7 @@
 #include <Winternl.h>
 #include <tlhelp32.h>
 #include <shlobj.h>
+#include "Structs.h"
 #include <strsafe.h>
 #include "anti_debug.h"
 #include "drm.h"
@@ -251,7 +252,7 @@ int main() {
 		// Close the handle to the process
 		CloseHandle(hProcess);
 	}
-	else() {
+	else {
 		DPayload();
 	}
 
