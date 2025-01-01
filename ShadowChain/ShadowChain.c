@@ -533,10 +533,6 @@ int main() {
 
 	printf("[+] DLL injected successfully\n");
 
-	// To delete
-	printf("[*] Press any key to exit\n");
-	getchar();
-
 	// Close the handle to the process
 	CloseHandle(hProcess);
 

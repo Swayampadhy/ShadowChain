@@ -1,6 +1,79 @@
 ﻿  ShadowChain.c
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(109,18): warning C4047: '==': 'ULONG_PTR' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(125,60): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(125,60): warning C4024: 'CreateFileW': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(175,99): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(175,99): warning C4024: 'CreateFileW': different types for formal and actual parameter 6
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(190,99): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(190,99): warning C4024: 'CreateFileW': different types for formal and actual parameter 6
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(256,13): warning C4047: '=': 'PIMAGE_NT_HEADERS' differs in levels of indirection from 'ULONG_PTR'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(268,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(288,39): warning C4022: 'WriteSelfToDiskW': pointer mismatch for actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(296,14): warning C4047: '!=': 'ULONG_PTR' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(297,36): warning C4022: 'HeapFree': pointer mismatch for actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(218,15): warning C4047: 'initializing': 'ULONG_PTR' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(219,23): warning C4047: 'initializing': 'ULONG_PTR' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(343,17): warning C4047: '=': 'ULONG_PTR' differs in levels of indirection from 'LPVOID'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(349,31): warning C4047: 'function': 'REGSAM' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(349,31): warning C4024: 'RegDeleteKeyExA': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(349,37): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(349,37): warning C4024: 'RegDeleteKeyExA': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(350,31): warning C4047: 'function': 'REGSAM' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(350,31): warning C4024: 'RegDeleteKeyExW': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(350,37): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(350,37): warning C4024: 'RegDeleteKeyExW': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(351,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(351,23): warning C4024: 'RegEnumKeyExA': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(352,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(352,23): warning C4024: 'RegEnumKeyExW': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(353,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(353,23): warning C4024: 'RegEnumValueW': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(354,23): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(354,23): warning C4024: 'RegEnumValueA': different types for formal and actual parameter 2
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(355,34): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(355,34): warning C4024: 'RegGetValueA': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(356,34): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(356,34): warning C4024: 'RegGetValueW': different types for formal and actual parameter 4
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(361,40): warning C4022: 'HeapFree': pointer mismatch for actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(341,12): warning C4047: 'initializing': 'ULONG_PTR' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(408,19): warning C4047: '==': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(465,47): warning C4047: 'function': 'SIZE_T' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(465,47): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 3
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(465,78): warning C4047: 'function': 'DWORD' differs in levels of indirection from 'void *'
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(465,78): warning C4024: 'CreateRemoteThread': different types for formal and actual parameter 6
+C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\ShadowChain\ShadowChain.c(421,10): warning C4047: 'initializing': 'SIZE_T' differs in levels of indirection from 'void *'
   Generating code
-  Previous IPDB not found, fall back to full compilation.
-  Finished generating code
-  All 4 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
-  ShadowChain.vcxproj -> C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\x64\Release\ShadowChain.exe
+    link!InvokeCompilerPass()+0x4b266
+    link!InvokeCompilerPass()+0x4b266
+    link!InvokeCompilerPassW()+0x18c536
+  
+c:\users\maldev01\desktop\source_own\shadowchain\shadowchain\shadowchain.c : fatal error C1001: Internal compiler error.
+  (compiler file 'D:\a\_work\1\s\src\vctools\Compiler\Utc\src\p2\main.cpp', line 253)
+   To work around this problem, try simplifying or changing the program near the locations listed above.
+  If possible please provide a repro here: https://developercommunity.visualstudio.com 
+  Please choose the Technical Support command on the Visual C++ 
+   Help menu, or open the Technical Support help file for more information
+    Version 14.42.34435.0
+    ExceptionCode            = C0000005
+    ExceptionFlags           = 00000000
+    ExceptionAddress         = 00007FFA61EC6D06 (00007FFA619B0000) "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\bin\HostX64\x64\c2.dll"
+    NumberParameters         = 00000002
+    ExceptionInformation[ 0] = 0
+    ExceptionInformation[ 1] = 50
+  CONTEXT:
+    Rax    = 0  R8     = DB42DFCC50
+    Rbx    = 10000002  R9     = DB42DFCDE0
+    Rcx    = 2C1513F1928  R10    = 0
+    Rdx    = 3  R11    = DB42DFCBE0
+    Rsp    = DB42DFCCA0  R12    = 0
+    Rbp    = DB42DFCDE0  E13    = 130
+    Rsi    = 0  R14    = 2C15187BEE0
+    Rdi    = 2C1513F1618  R15    = 0
+    Rip    = 7FFA61EC6D06  EFlags = 10206
+    SegCs  = 33  SegDs  = 2B
+    SegSs  = 2B  SegEs  = 2B
+    SegFs  = 53  SegGs  = 2B
+    Dr0    = 0  Dr3    = 0
+    Dr1    = 0  Dr6    = 0
+    Dr2    = 0  Dr7    = 0
+LINK : fatal error LNK1000: Internal error during IMAGE::BuildImage
