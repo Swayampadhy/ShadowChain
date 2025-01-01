@@ -54,6 +54,9 @@ The `IsSameMachine()` function performs the following steps:
     - The function prints the retrieved serial number and the stored constant value (`g_dwSerialNumberConstVariable`).
     - If the retrieved serial number matches the stored value, it confirms that the program is running on the same machine and returns `TRUE`.
 
+![image](https://github.com/user-attachments/assets/9f10fa16-e954-4000-a71d-8c9b066463d6)
+
+
 3. **Check for Initial Placeholder Value**:
     ```C
     if (g_dwSerialNumberConstVariable != INITIAL_VALUE) {
