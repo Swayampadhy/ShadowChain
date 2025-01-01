@@ -1,6 +1,12 @@
 # ShadowChain
 ---------
-Shadow Chain is a DRM enabled dll injector with capabilities of Anti-debugging and persistence.
+Shadow Chain is a modular DRM enabled dll injector with capabilities of Anti-debugging and persistence.
+
+Due to it's nature as a dll injector, the payload isn't stored in the main injector but rather in the dll. This reduces entropy of ShadowChain and lowers the risk of detection as an dll being detected as malicious is far better than the injector being deemed as malicious. For this implementation, my payload is a simple windows popup but this payload can be changed to anything; be it a shellcode or other payload formats. More advanced implementations can aslo be made such as obfuscating or encrypting the payload to further reduce the chances of detection. The payload is only limited to one's imagination.
+
+**This implementation has already bypassed several anti-viruses such as Defender, Norton, BitDefender and QuickHeal.** I haven't had the chance to test it out on enterprise EDR solutions yet.
+
+I have given detailed explanation of the code below but please feel free to contact me for further information.
 
 # Features Of ShadowChain
 
