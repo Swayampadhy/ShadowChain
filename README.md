@@ -318,14 +318,134 @@ Then it -
 - Sets the result to `TRUE` if the file was successfully deleted.
 - Closes the file handle and returns the result.
 
+## Anti-Debugging Using TLS Callbacks
+---------
+TLS callbacks are a set of callback functions specified within the TLS directory of a PE file, these callbacks are executed by the Windows loader before thread creation, meaning that a TLS callback can be executed before the main thread. From an anti-analysis perspective, TLS callbacks can be used to check if the implementation is being analyzed before executing the main function.
 
+The `ReadSelfFromDiskW` function reads the executable image of the current process from disk. Here is a detailed explanation of how the function works:
 
+### Preprocessing code
 
+```C
+#pragma once
+#pragma comment (linker, "/INCLUDE:_tls_used")
+#pragma comment (linker, "/INCLUDE:CheckIfImgOpenedInADebugger")
 
+//----------------------------------------------------------------------------------------------------------------
 
+#define OVERWRITE_SIZE				0x500
+#define INT3_INSTRUCTION_OPCODE		0xCC
 
+//----------------------------------------------------------------------------------------------------------------
+#define ERROR_BUF_SIZE				(MAX_PATH * 2)
+//----------------------------------------------------------------------------------------------------------------
+#define PRINT( STR, ... )                                                                           \
+    if (1) {                                                                                        \
+        LPSTR cBuffer = (LPSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ERROR_BUF_SIZE);       \
+        if (cBuffer){                                                                               \
+            int iLength = wsprintfA(cBuffer, STR, __VA_ARGS__);                                     \
+            WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), cBuffer, iLength, NULL, NULL);           \
+            HeapFree(GetProcessHeap(), 0x00, cBuffer);                                              \
+        }                                                                                           \
+    }  
 
+//----------------------------------------------------------------------------------------------------------------
 
+extern void* __cdecl memset(void*, int, size_t);
+
+#pragma intrinsic(memset)
+#pragma function(memset)
+void* __cdecl memset(void* pTarget, int value, size_t cbTarget) {
+    unsigned char* p = (unsigned char*)pTarget;
+    while (cbTarget-- > 0) {
+        *p++ = (unsigned char)value;
+    }
+    return pTarget;
+}
+
+//----------------------------------------------------------------------------------------------------------------
+// TLS Callback Function Prototypes:
+
+VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext);
+
+#pragma const_seg(".CRT$XLB")
+EXTERN_C CONST PIMAGE_TLS_CALLBACK CheckIfImgOpenedInADebugger = (PIMAGE_TLS_CALLBACK)ADTlsCallback;
+#pragma const_seg()
+```
+
+### TLS Function Code
+
+```C
+// Anti-debugging TLS Callback Function
+VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext) {
+
+	DWORD		dwOldProtection = 0x00;
+
+	// Get the address of the main function
+	if (dwReason == DLL_PROCESS_ATTACH) {
+		PRINT("[TLS][i] Main Function Address: 0x%p \n", main);
+
+		// Check if the entry point is patched with INT 3 instruction
+		if (*(BYTE*)main == INT3_INSTRUCTION_OPCODE) {
+			PRINT("[TLS][!] Entry Point Is Patched With \"INT 3\" Instruction!\n");
+
+			// Overwrite main function - process crash
+			if (VirtualProtect(&main, OVERWRITE_SIZE, PAGE_EXECUTE_READWRITE, &dwOldProtection)) {
+				memset(main, 0xFF, OVERWRITE_SIZE);
+				PRINT("[TLS][+] Main Function Is Overwritten With 0xFF Bytes \n");
+			}
+
+			// Restore the original protection
+			else {
+				PRINT("[TLS][!] Failed To Overwrite The Entry Point\n");
+			}
+
+		}
+	}
+}
+```
+The `ADTlsCallBack` function requires three parameters -
+
+- `hModule`: A handle to the module.
+- `dwReason`: The reason for the callback. This can be one of several values, such as `DLL_PROCESS_ATTACH`, `DLL_THREAD_ATTACH`, `DLL_THREAD_DETACH`, or `DLL_PROCESS_DETACH`.
+- `pContext`: Reserved for future use and is typically `NULL`.
+
+After accepting the parameters, the function - 
+
+- Initializes a variable to store the old protection attributes of the memory region.
+```C
+DWORD dwOldProtection = 0x00;
+```
+- Checks if the reason for the callback is `DLL_PROCESS_ATTACH`, which indicates that the process is being attached.
+```C
+if (dwReason == DLL_PROCESS_ATTACH) {
+```
+- Uses the `PRINT` macro to print the address of the `main` function.
+```C
+PRINT("[TLS][i] Main Function Address: 0x%p \n", main);
+```
+- Checks if the first byte of the `main` function is the `INT 3` instruction opcode (`0xCC`), which is commonly used by debuggers to set breakpoints.
+- If the entry point is patched with the `INT 3` instruction, it prints a warning message.
+```C
+if ((BYTE)main == INT3_INSTRUCTION_OPCODE) {
+	PRINT("[TLS][!] Entry Point Is Patched With "INT 3" Instruction!\n");
+}
+```
+- Attempts to change the protection of the memory region containing the `main` function to `PAGE_EXECUTE_READWRITE` using `VirtualProtect`.
+- If successful, it overwrites the `main` function with `0xFF` bytes using the custom `memset` function.
+- Prints a message indicating that the `main` function has been overwritten.
+```C
+if (VirtualProtect(&main, OVERWRITE_SIZE, PAGE_EXECUTE_READWRITE, &dwOldProtection)) {
+	memset(main, 0xFF, OVERWRITE_SIZE);
+	PRINT("[TLS][+] Main Function Is Overwritten With 0xFF Bytes \n");
+}
+```
+- If the `VirtualProtect` call fails, it prints a message indicating that it failed to overwrite the entry point.
+```C
+else {
+	PRINT("[TLS][!] Failed To Overwrite The Entry Point\n");
+}
+```
 
 
 
