@@ -521,6 +521,8 @@ else {
 ------
 The `IATCamoflage2` function is designed to add whitelisted APIs to camouflage the Import Address Table (IAT). This function allocates memory, performs some checks, and then calls various registry-related functions to obfuscate the IAT. This is essential to obfuscate "Offensive APIs" by importing a bunch of useless whitelisted APIs.
 
+![image](https://github.com/user-attachments/assets/c65a8f24-c86d-473e-9a31-20110dd6a8bd)
+
 ### Detailed Steps
 
 1. **Allocate Memory**:
