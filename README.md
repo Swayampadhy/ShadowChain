@@ -332,6 +332,8 @@ Then it -
 ---------
 TLS callbacks are a set of callback functions specified within the TLS directory of a PE file, these callbacks are executed by the Windows loader before thread creation, meaning that a TLS callback can be executed before the main thread. From an anti-analysis perspective, TLS callbacks can be used to check if the implementation is being analyzed before executing the main function.
 
+![image](https://github.com/user-attachments/assets/7ce93415-512a-45b3-8e0e-84387ec565f1)
+
 The `ReadSelfFromDiskW` function reads the executable image of the current process from disk. Here is a detailed explanation of how the function works:
 
 ### Preprocessor code
@@ -561,6 +563,8 @@ if (!HeapFree(GetProcessHeap(), 0x00, uAddress)) {
 
 ## Remote process Dll Injection
 -------
+![image](https://github.com/user-attachments/assets/e3003b2d-2815-4314-9ab7-46dcba66dada)
+
 The remote process Dll Injection takes place through two different functions. -
 
 ### `GetRemoteProcessHandle` Function
@@ -741,6 +745,7 @@ _EndOfFunction:
 
 The `MoveToStartup` function moves the current running binary to the startup folder to ensure it runs on system startup. Here is a detailed explanation of how the function works:
 
+![image](https://github.com/user-attachments/assets/50f30307-9d2a-4ad6-870f-36201c8ea97c)
 
 ### Detailed Steps
 
