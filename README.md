@@ -12,5 +12,9 @@ Shadow Chain is a DRM enabled dll injector with capabilities of Anti-debugging a
 4. Remote process Dll Injection
 5. Persistence using Startup Folder
 
-### 
+### Explanation Of Working Of ShadowChain
+
+#### Digital Rights Management
+-------
+
 
