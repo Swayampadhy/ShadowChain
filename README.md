@@ -113,5 +113,222 @@ The `IsSameMachine()` function performs the following steps:
    return bResult;
      ```
 - The function performs cleanup by freeing the allocated memory and returns the result.    
-    
+
+6. `ReadSelfFromDiskW` Function
+The `ReadSelfFromDiskW` function reads the executable image of the current process from disk. Here is a detailed explanation of how the function works:
+
+```C
+// Function to read self image from disk
+BOOL ReadSelfFromDiskW(IN LPWSTR szLocalImageName, OUT ULONG_PTR* pModule, OUT DWORD* pdwFileSize) {
+
+	HANDLE		hFile = INVALID_HANDLE_VALUE;
+	PBYTE		pFileBuffer = NULL;
+	DWORD		dwFileSize = 0x00,
+		dwNumberOfBytesRead = 0x00;
+
+	// Check if the parameters are valid
+	if (!szLocalImageName || !pModule || !pdwFileSize)
+		return FALSE;
+
+	// Open the file
+	if ((hFile = CreateFileW(szLocalImageName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Get the file size
+	if ((dwFileSize = GetFileSize(hFile, NULL)) == INVALID_FILE_SIZE) {
+		printf("[!] GetFileSize Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Allocate memory for the file
+	if ((pFileBuffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwFileSize)) == NULL) {
+		printf("[!] HeapAlloc Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Read the file
+	if (!ReadFile(hFile, pFileBuffer, dwFileSize, &dwNumberOfBytesRead, NULL) || dwFileSize != dwNumberOfBytesRead) {
+		printf("[!] ReadFile Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Return the file buffer and the file size
+	*pModule = (ULONG_PTR)pFileBuffer;
+	*pdwFileSize = dwFileSize;
+
+_END_OF_FUNC:
+	if (hFile != INVALID_HANDLE_VALUE)
+		CloseHandle(hFile);
+	if (!*pModule && pFileBuffer)
+		HeapFree(GetProcessHeap(), 0x00, pFileBuffer);
+	return *pModule == NULL ? FALSE : TRUE;
+}
+
+```
+
+It takes three parameters.
+- `szLocalImageName`: The path to the executable image.
+- `pModule`: A pointer to store the address of the read image.
+- `pdwFileSize`: A pointer to store the size of the read image.
+
+After accepting the required parameters, it -
+- Initializes variables for the file handle, file buffer, file size, and number of bytes read.
+- Checks if the input parameters are valid. If not, returns `FALSE`.
+- Opens the file for reading. If it fails, prints an error message and jumps to the cleanup section.
+- Retrieves the file size. If it fails, prints an error message and jumps to the cleanup section.
+- Allocates memory to store the file contents. If it fails, prints an error message and jumps to the cleanup section.
+- Reads the file into the allocated buffer. If it fails, prints an error message and jumps to the cleanup section.
+- Stores the file buffer address and size in the output parameters.
+- Closes the file handle and frees the allocated memory if necessary. Returns `TRUE` if successful, `FALSE` otherwise.
+
+7. `WriteSelfToDiskW` Function
+The `WriteSelfToDiskW` function writes the executable image to disk. Here is a detailed explanation of how the function works:
+
+```C
+// Function to write self image to disk
+BOOL WriteSelfToDiskW(IN LPWSTR szLocalImageName, IN PVOID pImageBase, IN DWORD sImageSize) {
+
+	HANDLE		hFile = INVALID_HANDLE_VALUE;
+	DWORD		dwNumberOfBytesWritten = 0x00;
+
+	// Check if the parameters are valid
+	if (!szLocalImageName || !pImageBase || !sImageSize)
+		return FALSE;
+
+	// Open the file
+	if ((hFile = CreateFileW(szLocalImageName, GENERIC_WRITE, NULL, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Write the file
+	if (!WriteFile(hFile, pImageBase, sImageSize, &dwNumberOfBytesWritten, NULL) || sImageSize != dwNumberOfBytesWritten) {
+		printf("[!] WriteFile Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+_END_OF_FUNC:
+	if (hFile != INVALID_HANDLE_VALUE)
+		CloseHandle(hFile);
+	return dwNumberOfBytesWritten == sImageSize ? TRUE : FALSE;
+}
+
+```
+
+It takes three parameters.
+- `szLocalImageName`: The path to the executable image.
+- `pImageBase`: The address of the image to be written.
+- `sImageSize`: The size of the image to be written.
+
+After accepting the required parameters, it -
+- Initializes variables for the file handle and number of bytes written.
+- Checks if the input parameters are valid. If not, returns `FALSE`.
+- Opens the file for writing. If it fails, prints an error message and jumps to the cleanup section.
+- Writes the image to the file. If it fails, prints an error message and jumps to the cleanup section.
+- Closes the file handle and returns `TRUE` if the write was successful, `FALSE` otherwise.
+
+8. `DeleteSelfFromDiskW` Function
+The `DeleteSelfFromDiskW` function deletes the executable image from disk by renaming it and then setting it for deletion.
+
+```C
+// Structure for File Deletion
+typedef struct _FILE_RENAME_INFO2 {
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN10_RS1)
+	union {
+		BOOLEAN ReplaceIfExists;
+		DWORD Flags;
+	} DUMMYUNIONNAME;
+#else
+	BOOLEAN ReplaceIfExists;
+#endif
+	HANDLE RootDirectory;
+	DWORD FileNameLength;
+	WCHAR FileName[MAX_PATH]; // Instead of "WCHAR FileName[1]" (See FILE_RENAME_INFO's original documentation)
+} FILE_RENAME_INFO2, * PFILE_RENAME_INFO2;
+
+// Function to delete file image from disk
+BOOL DeleteSelfFromDiskW(IN LPCWSTR szFileName) {
+
+	BOOL						bResult = FALSE;
+	HANDLE                      hFile = INVALID_HANDLE_VALUE;
+	FILE_DISPOSITION_INFO       DisposalInfo = { .DeleteFile = TRUE };
+	FILE_RENAME_INFO2			RenameInfo = { .FileNameLength = sizeof(L":%x%x\x00"), .ReplaceIfExists = FALSE, .RootDirectory = 0x00 };
+
+	// Check if the parameters are valid
+	if (!szFileName)
+		return FALSE;
+
+	// Generate a random name
+	swprintf(RenameInfo.FileName, MAX_PATH, L":%x%x\x00", rand(), rand() * rand());
+
+	// Open the file
+	if ((hFile = CreateFileW(szFileName, DELETE | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Rename the file
+	if (!SetFileInformationByHandle(hFile, FileRenameInfo, &RenameInfo, sizeof(RenameInfo))) {
+		printf("[!] SetFileInformationByHandle [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Close the handle
+	CloseHandle(hFile);
+
+	// Open the file again
+	if ((hFile = CreateFileW(szFileName, DELETE | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Delete the file
+	if (!SetFileInformationByHandle(hFile, FileDispositionInfo, &DisposalInfo, sizeof(DisposalInfo))) {
+		printf("[!] SetFileInformationByHandle [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Set the result to TRUE
+	bResult = TRUE;
+
+_END_OF_FUNC:
+	if (hFile != INVALID_HANDLE_VALUE)
+		CloseHandle(hFile);
+	return bResult;
+}
+
+```
+
+It only takes one parameter.
+- `szFileName`: The path to the executable image to be deleted.
+
+Then it - 
+- Initializes variables for the result, file handle, file disposition info, and file rename info.
+- Checks if the input parameter is valid. If not, returns `FALSE`.
+- Generates a random name for the file.
+- Opens the file for deletion. If it fails, prints an error message and jumps to the cleanup section.
+- Renames the file. If it fails, prints an error message and jumps to the cleanup section.
+- Closes the file handle and reopens the file for deletion. If it fails, prints an error message and jumps to the cleanup section.
+- Sets the file for deletion. If it fails, prints an error message and jumps to the cleanup section.
+- Sets the result to `TRUE` if the file was successfully deleted.
+- Closes the file handle and returns the result.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
