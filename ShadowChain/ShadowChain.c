@@ -3,12 +3,12 @@
 #include <Winternl.h>
 #include <tlhelp32.h>
 #include <shlobj.h>
-#include "Structs.h"
 #include <strsafe.h>
 #include "anti_debug.h"
 #include "drm.h"
 
 //Dummy Payload
+// Change as per the requirements
 VOID DPayload() {
 	MessageBox(NULL, L"Dummy", L"Dummy", MB_OK);
 }
@@ -197,7 +197,7 @@ _EndOfFunction:
 int main() {
 
 	//Anti-Debugging Techniques (to modify)
-	if (todohere) {
+	if (AntiDbgNtSystemDebugControl() == FALSE) {
 
 		// Hardcoded process name
 		wchar_t szProcessName[] = L"msedge.exe";

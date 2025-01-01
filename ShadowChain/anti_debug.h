@@ -1,50 +1,70 @@
 // Header file for anti-debugging functions
 #pragma once
 
-typedef NTSTATUS(NTAPI* fnNtQueryInformationProcess)(HANDLE ProcessHandle, PROCESSINFOCLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength);
+// Typedef for NtSystemDebugControl
+typedef enum _SYSDBG_COMMAND
+{
+    SysDbgQueryModuleInformation,
+    SysDbgQueryTraceInformation,
+    SysDbgSetTracepoint,
+    SysDbgSetSpecialCall, // PVOID
+    SysDbgClearSpecialCalls, // void
+    SysDbgQuerySpecialCalls,
+    SysDbgBreakPoint,
+    SysDbgQueryVersion, // DBGKD_GET_VERSION64
+    SysDbgReadVirtual, // SYSDBG_VIRTUAL
+    SysDbgWriteVirtual, // SYSDBG_VIRTUAL
+    SysDbgReadPhysical, // SYSDBG_PHYSICAL // 10
+    SysDbgWritePhysical, // SYSDBG_PHYSICAL
+    SysDbgReadControlSpace, // SYSDBG_CONTROL_SPACE
+    SysDbgWriteControlSpace, // SYSDBG_CONTROL_SPACE
+    SysDbgReadIoSpace, // SYSDBG_IO_SPACE
+    SysDbgWriteIoSpace, // SYSDBG_IO_SPACE
+    SysDbgReadMsr, // SYSDBG_MSR
+    SysDbgWriteMsr, // SYSDBG_MSR
+    SysDbgReadBusData, // SYSDBG_BUS_DATA
+    SysDbgWriteBusData, // SYSDBG_BUS_DATA
+    SysDbgCheckLowMemory, // 20
+    SysDbgEnableKernelDebugger,
+    SysDbgDisableKernelDebugger,
+    SysDbgGetAutoKdEnable,
+    SysDbgSetAutoKdEnable,
+    SysDbgGetPrintBufferSize,
+    SysDbgSetPrintBufferSize,
+    SysDbgGetKdUmExceptionEnable,
+    SysDbgSetKdUmExceptionEnable,
+    SysDbgGetTriageDump, // SYSDBG_TRIAGE_DUMP
+    SysDbgGetKdBlockEnable, // 30
+    SysDbgSetKdBlockEnable,
+    SysDbgRegisterForUmBreakInfo,
+    SysDbgGetUmBreakPid,
+    SysDbgClearUmBreakPid,
+    SysDbgGetUmAttachPid,
+    SysDbgClearUmAttachPid,
+    SysDbgGetLiveKernelDump, // SYSDBG_LIVEDUMP_CONTROL
+    SysDbgKdPullRemoteFile, // SYSDBG_KD_PULL_REMOTE_FILE
+    SysDbgMaxInfoClass
+} SYSDBG_COMMAND, * PSYSDBG_COMMAND;
 
-// Function to check NtQueryInformationProcess and determine if the process is being debugged
-BOOL NtQIPDebuggerCheck() {
+// NtSystemDebugControl structure
+typedef NTSTATUS(NTAPI* fnNtSystemDebugControl)(SYSDBG_COMMAND Command, PVOID InputBuffer, ULONG InputBufferLength, PVOID OutputBuffer, ULONG OutputBufferLength, PULONG ReturnLength);
 
-	NTSTATUS                      STATUS = NULL;
-	fnNtQueryInformationProcess   pNtQueryInformationProcess = NULL;
-	DWORD64                       dwIsDebuggerPresent = NULL;
-	DWORD64                       hProcessDebugObject = NULL;
+//Function to check if the process is being debugged
+BOOL AntiDbgNtSystemDebugControl() {
 
-	// Getting the address of NtQueryInformationProcess
-	pNtQueryInformationProcess = (fnNtQueryInformationProcess)GetProcAddress(GetModuleHandle(TEXT("NTDLL.DLL")), "NtQueryInformationProcess");
-	if (pNtQueryInformationProcess == NULL) {
-		printf("[!] GetProcAddress Failed With Error Code: %d\n", GetLastError());
-		return FALSE;
-	}
+    NTSTATUS                    STATUS = 0x00;
+    fnNtSystemDebugControl      pNtSystemDebugControl = NULL;
 
-	// Calling NtQueryInformationProcess with ProcessDebugPort flag
-	STATUS = pNtQueryInformationProcess(GetCurrentProcess(), ProcessDebugPort, &dwIsDebuggerPresent, sizeof(DWORD64), NULL);
-	if (STATUS != 0x0) {
-		printf("[!] NtQueryInformationProcess [1] Failed With Error Code: %d\n", GetLastError());
-		return FALSE;
-	}
+	// Get the address of NtSystemDebugControl
+    if (!(pNtSystemDebugControl = (fnNtSystemDebugControl)GetProcAddress(GetModuleHandle(TEXT("NTDLL")), "NtSystemDebugControl"))) {
+        printf("[!] GetProcAddress [%d] Failed With Error: %d \n", __LINE__, GetLastError());
+        return FALSE;
+    }
 
-	// Checking if the process is being debugged
-	if (dwIsDebuggerPresent != 0) {
-		printf("[!] Process is being debugged\n");
-		return TRUE;
-	}
+    // STATUS_DEBUGGER_INACTIVE: 0xC0000354 - An attempt to do an operation on a debug port failed because the port is in the process of being deleted.
+    if ((STATUS = pNtSystemDebugControl(SysDbgBreakPoint, NULL, NULL, NULL, NULL, NULL)) == 0xC0000354)
+        return FALSE;
 
-	// Calling NtQueryInformationProcess with ProcessDebugObjectHandle flag
-	STATUS = pNtQueryInformationProcess(GetCurrentProcess(), ProcessDebugObjectHandle, &hProcessDebugObject, sizeof(DWORD64), NULL);
-	if (STATUS != 0x0 && STATUS != 0Xc0000353) {
-		printf("[!] NtQueryInformationProcess [2] Failed With Error Code: %d\n", GetLastError());
-		return FALSE;
-	}
-
-	// Checking if the process is being debugged
-	if (hProcessDebugObject != 0) {
-		printf("[!] Process is being debugged\n");
-		return TRUE;
-	}
-
-	// TRUE = being debugged, FALSE = not being debugged
+    return TRUE;
 }
-
 // Can add more debugging checks here below

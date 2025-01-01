@@ -26,8 +26,5 @@
     <ClInclude Include="drm.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Structs.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
