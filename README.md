@@ -20,7 +20,7 @@ I have given detailed explanation of the code below but please feel free to cont
 
 ## FlowChart Of ShadowChain
 
-![image](https://github.com/user-attachments/assets/5e4846c2-6080-4874-84ad-d063951146b2)
+![image](https://github.com/user-attachments/assets/3a5eafdf-0f44-4d34-b753-203956ae40b1)
 
 ## Digital Rights Management (DRM)
 -------
