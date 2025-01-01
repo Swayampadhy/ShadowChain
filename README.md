@@ -324,7 +324,7 @@ TLS callbacks are a set of callback functions specified within the TLS directory
 
 The `ReadSelfFromDiskW` function reads the executable image of the current process from disk. Here is a detailed explanation of how the function works:
 
-### Preprocessing code
+### Preprocessor code
 
 ```C
 #pragma once
@@ -366,6 +366,64 @@ void* __cdecl memset(void* pTarget, int value, size_t cbTarget) {
 //----------------------------------------------------------------------------------------------------------------
 // TLS Callback Function Prototypes:
 
+VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext);
+
+#pragma const_seg(".CRT$XLB")
+EXTERN_C CONST PIMAGE_TLS_CALLBACK CheckIfImgOpenedInADebugger = (PIMAGE_TLS_CALLBACK)ADTlsCallback;
+#pragma const_seg()
+```
+##### Linker Directives
+- This directive instructs the linker to include the symbol `_tls_used` in the output file. This is necessary to ensure that the TLS (Thread Local Storage) callbacks are properly registered and executed.
+`#pragma comment (linker, "/INCLUDE:_tls_used")`
+- This directive instructs the linker to include the symbol `CheckIfImgOpenedInADebugger` in the output file. This is necessary to ensure that the TLS callback function `ADTlsCallback` is properly registered and executed.
+`#pragma comment (linker, "/INCLUDE:CheckIfImgOpenedInADebugger")`
+
+
+##### Constants And Macros
+- Defines the size (in bytes) to be overwritten in the `main` function if an `INT 3` instruction is detected. The value `0x500` (1280 bytes) is used as the overwrite size.
+`#define OVERWRITE_SIZE 0x500`
+- Defines the opcode for the `INT 3` instruction, which is commonly used by debuggers to set breakpoints. The value `0xCC` is the opcode for the `INT 3` instruction.
+`#define INT3_INSTRUCTION_OPCODE 0xCC`
+- Defines the size of the error buffer used in the `PRINT` macro. The value is set to twice the maximum path length (`MAX_PATH`), which is typically 260 characters.
+`#define ERROR_BUF_SIZE (MAX_PATH * 2)`
+- Defines a macro for printing formatted strings to the console. The macro allocates a buffer, formats the string, writes it to the console, and then frees the buffer.
+```C
+#define PRINT( STR, ... )                                                                           \
+    if (1) {                                                                                        \
+        LPSTR cBuffer = (LPSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ERROR_BUF_SIZE);       \
+        if (cBuffer){                                                                               \
+            int iLength = wsprintfA(cBuffer, STR, __VA_ARGS__);                                     \
+            WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), cBuffer, iLength, NULL, NULL);           \
+            HeapFree(GetProcessHeap(), 0x00, cBuffer);                                              \
+        }                                                                                           \
+    } 
+```
+
+##### Custom memset Function
+- Declares an external `memset` function with the `__cdecl` calling convention.
+- Instructs the compiler to use the intrinsic version of the `memset` function, if available.
+- Instructs the compiler to use the user-defined version of the `memset` function, overriding the intrinsic version.
+- Implements a custom `memset` function that fills a block of memory with a specified value.
+```C
+extern void* __cdecl memset(void*, int, size_t);
+
+#pragma intrinsic(memset)
+#pragma function(memset)
+void* __cdecl memset(void* pTarget, int value, size_t cbTarget) {
+    unsigned char* p = (unsigned char*)pTarget;
+    while (cbTarget-- > 0) {
+        *p++ = (unsigned char)value;
+    }
+    return pTarget;
+}
+```
+
+##### TLS Callback Function Prototypes
+- Declares the prototype for the TLS callback function `ADTlsCallback`.
+- Instructs the compiler to place the following constant data in the `.CRT$XLB` section.
+- Defines a constant pointer to the `ADTlsCallback` function and places it in the `.CRT$XLB` section. This ensures that the TLS callback function is registered and executed when the process is attached.
+- Resets the section to the default.
+```C
 VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext);
 
 #pragma const_seg(".CRT$XLB")
