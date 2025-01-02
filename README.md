@@ -328,7 +328,7 @@ Then it -
 - Sets the result to `TRUE` if the file was successfully deleted.
 - Closes the file handle and returns the result.
 
-## Remote process Dll Injection
+## Remote Process Dll Injection
 -------
 ![image](https://github.com/user-attachments/assets/e3003b2d-2815-4314-9ab7-46dcba66dada)
 
