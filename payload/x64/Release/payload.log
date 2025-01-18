@@ -1,7 +1,1 @@
-﻿  pch.cpp
-  dllmain.cpp
-  Generating code
-  Previous IPDB not found, fall back to full compilation.
-  All 2 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
-  Finished generating code
-  payload.vcxproj -> C:\Users\MALDEV01\Desktop\Source_OWN\ShadowChain\x64\Release\payload_dll.dll
+﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppClean.targets(77,5): warning : Access to the path 'c:\users\swaya\source\repos\swayampadhy\shadowchain\x64\release\payload_dll.dll' is denied.
